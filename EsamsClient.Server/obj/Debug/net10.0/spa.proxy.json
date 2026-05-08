@@ -1,0 +1,10 @@
+{
+"SpaProxyServer": {
+"ServerUrl": "https://localhost:14418",
+"RedirectUrl": "",
+"LaunchCommand": "npm run dev",
+"WorkingDirectory": "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\..\\esamsclient.client",
+"MaxTimeoutInSeconds": "120",
+"KeepRunning": "false"
+}
+}
