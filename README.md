@@ -10,24 +10,23 @@ LayerTechnologyBackendASP.NET Core Web API / C# / .NET 10FrontendReact 18 + Type
 
 Project Structure
 
-SafetyOpsApp/
-├── EsamsClient.Server/         # ASP.NET Core Web API
-│   ├── Controllers/
-│   │   └── PersonnelController.cs   # CRUD endpoints for user/personnel records
-│   ├── Data/
-│   │   └── AppDbContext.cs          # EF Core DbContext with User entity
-│   ├── Models/
-│   │   └── User.cs                  # Personnel data model
-│   └── Program.cs                   # App bootstrap, CORS, EF config
-│
-└── esamsclient.client/         # Vite + React + TypeScript frontend
-    ├── src/
-    │   ├── services/
-    │   │   └── api.ts               # Centralized HTTP layer
-    │   ├── pages/                   # Route-level components
-    │   └── main.tsx                 # App entry point with react-router-dom
-    └── vite.config.ts
-
+```
+EsamsClient.Server/
+  Controllers/
+    PersonnelController.cs   CRUD endpoints for personnel records
+  Data/
+    AppDbContext.cs           EF Core DbContext with User entity
+  Models/
+    User.cs                  Personnel data model
+  Program.cs                 App bootstrap, CORS, EF config
+esamsclient.client/
+  src/
+    services/
+      api.ts                 Centralized HTTP layer
+    pages/                   Route-level components
+    main.tsx                 App entry point with react-router-dom
+  vite.config.ts
+```
 
 API Endpoints
 
