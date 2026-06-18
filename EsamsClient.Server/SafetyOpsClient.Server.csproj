@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\esamsclient.client\esamsclient.client.esproj">
+    <ProjectReference Include="..\esamsclient.client\safetyopsclient.client.esproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>

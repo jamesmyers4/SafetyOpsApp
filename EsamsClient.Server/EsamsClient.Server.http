@@ -1,6 +1,6 @@
-@EsamsClient.Server_HostAddress = http://localhost:5093
+@SafetyOpsClient.Server_HostAddress = http://localhost:5093
 
-GET {{EsamsClient.Server_HostAddress}}/weatherforecast/
+GET {{SafetyOpsClient.Server_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###

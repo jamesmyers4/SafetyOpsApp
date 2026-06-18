@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace EsamsClient.Server.Controllers
+namespace SafetyOpsClient.Server.Controllers
 {
     [ApiController]
     [Route("[controller]")]

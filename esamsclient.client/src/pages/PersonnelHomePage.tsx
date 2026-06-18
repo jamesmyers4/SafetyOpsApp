@@ -20,9 +20,9 @@ export default function PersonnelHomePage() {
     return (
         <div style={{ background: '#f4f6f9', minHeight: '100vh', margin: 0 }}>
             <div style={{ background: '#1a2744', padding: '14px 30px', color: 'white', fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '30px' }}>
-                ESAMS
-                <a onClick={() => navigate('/n/esams/main')} style={{ color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' }}>Modules</a>
-                <a onClick={() => navigate('/n/esams/personnel')} style={{ color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' }}>Personnel Administration</a>
+                SAFETYOPS
+                <a onClick={() => navigate('/n/safetyops/main')} style={{ color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' }}>Modules</a>
+                <a onClick={() => navigate('/n/safetyops/personnel')} style={{ color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' }}>Personnel Administration</a>
             </div>
             <div style={{ padding: '40px 60px' }}>
                 <h2 style={{ color: '#1a2744', marginBottom: '30px' }}>Personnel Administration</h2>
@@ -32,7 +32,7 @@ export default function PersonnelHomePage() {
                 </div>
                 <div style={{ marginBottom: '30px' }}>
                     <button
-                        onClick={() => navigate('/n/esams/personnel/create')}
+                        onClick={() => navigate('/n/safetyops/personnel/create')}
                         style={{ background: '#1a2744', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '4px', cursor: 'pointer', fontSize: '15px' }}
                     >
                         Add New User

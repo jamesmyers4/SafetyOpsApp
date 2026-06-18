@@ -9,7 +9,7 @@
       "EsamsClient.Server/1.0.0": {
         "dependencies": {
           "Microsoft.AspNetCore.OpenApi": "10.0.7",
-          "Microsoft.AspNetCore.SpaProxy": "10.0.7"
+          "Microsoft.AspNetCore.SpaProxy": "10.0.8"
         },
         "runtime": {
           "EsamsClient.Server.dll": {}
@@ -26,11 +26,11 @@
           }
         }
       },
-      "Microsoft.AspNetCore.SpaProxy/10.0.7": {
+      "Microsoft.AspNetCore.SpaProxy/10.0.8": {
         "runtime": {
           "lib/net10.0/Microsoft.AspNetCore.SpaProxy.dll": {
-            "assemblyVersion": "10.0.7.0",
-            "fileVersion": "10.0.726.21808"
+            "assemblyVersion": "10.0.8.0",
+            "fileVersion": "10.0.826.23019"
           }
         }
       },
@@ -57,12 +57,12 @@
       "path": "microsoft.aspnetcore.openapi/10.0.7",
       "hashPath": "microsoft.aspnetcore.openapi.10.0.7.nupkg.sha512"
     },
-    "Microsoft.AspNetCore.SpaProxy/10.0.7": {
+    "Microsoft.AspNetCore.SpaProxy/10.0.8": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-K1zHPjHZap3NKURVED91/v2E9e5mazt/n0cIxY8S0PXDMk+bAUUbXWsOyz/mLAF+p5Mhv5ns6Pnff2sXIPaFqQ==",
-      "path": "microsoft.aspnetcore.spaproxy/10.0.7",
-      "hashPath": "microsoft.aspnetcore.spaproxy.10.0.7.nupkg.sha512"
+      "sha512": "sha512-cEd54UPTq1CGPFLfptXbAM6OiwLi7Rrrue1eDxUmJXG2A5/M+a56xgmDTt1N8tFDjX2eYWYFsu9ufFFxXWEf0w==",
+      "path": "microsoft.aspnetcore.spaproxy/10.0.8",
+      "hashPath": "microsoft.aspnetcore.spaproxy.10.0.8.nupkg.sha512"
     },
     "Microsoft.OpenApi/2.0.0": {
       "type": "package",

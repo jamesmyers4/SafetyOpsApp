@@ -1,15 +1,15 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\EsamsClient.Server.csproj": {}
+    "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\SafetyOpsClient.Server.csproj": {}
   },
   "projects": {
-    "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\EsamsClient.Server.csproj": {
+    "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\SafetyOpsClient.Server.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\EsamsClient.Server.csproj",
-        "projectName": "EsamsClient.Server",
-        "projectPath": "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\EsamsClient.Server.csproj",
+        "projectUniqueName": "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\SafetyOpsClient.Server.csproj",
+        "projectName": "SafetyOpsClient.Server",
+        "projectPath": "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\SafetyOpsClient.Server.csproj",
         "packagesPath": "C:\\Users\\james\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\obj\\",
         "projectStyle": "PackageReference",

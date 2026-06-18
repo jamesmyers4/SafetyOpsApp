@@ -1,4 +1,4 @@
-namespace EsamsClient.Server
+namespace SafetyOpsClient.Server
 {
     public class WeatherForecast
     {

@@ -76,7 +76,7 @@ export default function AddUserPage() {
     async function handleSubmit() {
         try {
             await api.addUser(form);
-            navigate('/n/esams/personnel/success');
+            navigate('/n/safetyops/personnel/success');
         } catch (e) {
             console.error(e);
         }
@@ -91,9 +91,9 @@ export default function AddUserPage() {
         <div onKeyDown={e => { if (e.key === 'Enter' && !dialog) handleSubmit(); }}
              style={{ background: '#f4f6f9', minHeight: '100vh', margin: 0 }}>
              <div style={{ background: '#1a2744', padding: '14px 30px', color: 'white', fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '30px' }}>
-                ESAMS
-                <a onClick={() => navigate('/n/esams/main')} style={navStyle}>Modules</a>
-                <a onClick={() => navigate('/n/esams/personnel')} style={navStyle}>Personnel Administration</a>
+                SAFETOPS
+                <a onClick={() => navigate('/n/safetyops/main')} style={navStyle}>Modules</a>
+                <a onClick={() => navigate('/n/safetyops/personnel')} style={navStyle}>Personnel Administration</a>
             </div>
             <div style={{ padding: '40px 60px' }}>
                 <h3 style={{ color: '#1a2744', marginBottom: '30px' }}>Add New User</h3>

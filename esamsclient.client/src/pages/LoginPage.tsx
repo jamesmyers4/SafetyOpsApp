@@ -11,7 +11,7 @@ export default function LoginPage() {
     async function handleLogin() {
         try {
             await api.login(username, password);
-            navigate('/n/esams/main');
+            navigate('/n/safetyops/main');
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Login failed');
         }

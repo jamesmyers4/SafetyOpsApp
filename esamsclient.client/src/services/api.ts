@@ -36,11 +36,11 @@ export const api = {
         subscription: string;
         employeeNumber: string;
     }) =>
-        request<{ success: boolean; message: string }>('/n/esams/personnel/create', {
+        request<{ success: boolean; message: string }>('/n/safetyops/personnel/create', {
             method: 'POST',
             body: JSON.stringify(data),
         }),
 
     getUsers: () =>
-        request<{ firstName: string; lastName: string; department: string; employeeCategory: string }[]>('/n/esams/personnel/users'),
+        request<{ firstName: string; lastName: string; department: string; employeeCategory: string }[]>('/n/safetyops/personnel/users'),
 };

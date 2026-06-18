@@ -35,3 +35,4 @@ C:\Users\james\source\repos\EsamsClient\EsamsClient.Server\obj\Debug\net10.0\ref
 C:\Users\james\source\repos\EsamsClient\EsamsClient.Server\obj\Debug\net10.0\EsamsClient.Server.pdb
 C:\Users\james\source\repos\EsamsClient\EsamsClient.Server\obj\Debug\net10.0\EsamsClient.Server.genruntimeconfig.cache
 C:\Users\james\source\repos\EsamsClient\EsamsClient.Server\obj\Debug\net10.0\ref\EsamsClient.Server.dll
+C:\Users\james\source\repos\EsamsClient\EsamsClient.Server\obj\Debug\net10.0\EsamsClient.Server.sourcelink.json

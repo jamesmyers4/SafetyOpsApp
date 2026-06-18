@@ -12,10 +12,10 @@ export default function App() {
             <Routes>
                 <Route path="/" element={<SplashPage />} />
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/n/esams/main" element={<MainPage />} />
-                <Route path="/n/esams/personnel" element={<PersonnelHomePage />} />
-                <Route path="/n/esams/personnel/create" element={<AddUserPage />} />
-                <Route path="/n/esams/personnel/success" element={<SuccessPage />} />
+                <Route path="/n/safetyops/main" element={<MainPage />} />
+                <Route path="/n/safetyops/personnel" element={<PersonnelHomePage />} />
+                <Route path="/n/safetyops/personnel/create" element={<AddUserPage />} />
+                <Route path="/n/safetyops/personnel/success" element={<SuccessPage />} />
                 <Route path="*" element={<Navigate to="/" />} />
             </Routes>
         </BrowserRouter>
