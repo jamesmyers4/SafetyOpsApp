@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\SafetyOpsClient.Server.csproj": {}
+    "C:\\Users\\james\\source\\repos\\SafetyOpsClient\\SafetyOpsClient.Server\\SafetyOpsClient.Server.csproj": {}
   },
   "projects": {
-    "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\SafetyOpsClient.Server.csproj": {
+    "C:\\Users\\james\\source\\repos\\SafetyOpsClient\\SafetyOpsClient.Server\\SafetyOpsClient.Server.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\SafetyOpsClient.Server.csproj",
+        "projectUniqueName": "C:\\Users\\james\\source\\repos\\SafetyOpsClient\\SafetyOpsClient.Server\\SafetyOpsClient.Server.csproj",
         "projectName": "SafetyOpsClient.Server",
-        "projectPath": "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\SafetyOpsClient.Server.csproj",
+        "projectPath": "C:\\Users\\james\\source\\repos\\SafetyOpsClient\\SafetyOpsClient.Server\\SafetyOpsClient.Server.csproj",
         "packagesPath": "C:\\Users\\james\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\james\\source\\repos\\EsamsClient\\EsamsClient.Server\\obj\\",
+        "outputPath": "C:\\Users\\james\\source\\repos\\SafetyOpsClient\\SafetyOpsClient.Server\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

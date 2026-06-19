@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SafetyOpsClient.Server")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+28af5c12bfa83ace6c0d25346936005b0a2ea73d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+10a2520e6871c9fadc1ea84f855a1e69d51a4869")]
 [assembly: System.Reflection.AssemblyProductAttribute("SafetyOpsClient.Server")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SafetyOpsClient.Server")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
