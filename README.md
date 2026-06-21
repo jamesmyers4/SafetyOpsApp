@@ -29,11 +29,11 @@ esamsclient.client/
 ```
 
 API Endpoints
-
+```
 MethodRouteDescriptionGET/api/personnel Retrieve all personnel 
 recordsPOST/api/personnel Create a new personnel 
 recordDELETE/api/personnel/{id} Delete a personnel record by ID
-
+```
 
 Getting Started
 
