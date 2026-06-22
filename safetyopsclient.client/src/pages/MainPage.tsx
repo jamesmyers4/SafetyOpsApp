@@ -1,14 +1,9 @@
-import { useNavigate } from 'react-router-dom';
+import NavBar from '../components/NavBar';
 
 export default function MainPage() {
-    const navigate = useNavigate();
     return (
         <div style={{ background: '#f4f6f9', minHeight: '100vh', margin: 0 }}>
-            <div style={{ background: '#1a2744', padding: '14px 30px', color: 'white', fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '30px' }}>
-                SAFETYOPS
-                <a onClick={() => navigate('/n/safetyops/main')} style={{ color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' }}>Modules</a>
-                <a onClick={() => navigate('/n/safetyops/personnel')} style={{ color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' }}>Personnel Administration</a>
-            </div>
+            <NavBar />
             <div style={{ padding: '60px', textAlign: 'center' }}>
                 <h2 style={{ color: '#1a2744' }}>Welcome to SAFETYOPS</h2>
                 <p style={{ color: '#555' }}>Select a module from the navigation bar to get started.</p>

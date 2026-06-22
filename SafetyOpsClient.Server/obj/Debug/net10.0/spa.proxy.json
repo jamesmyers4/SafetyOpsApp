@@ -3,7 +3,7 @@
 "ServerUrl": "https://localhost:14418",
 "RedirectUrl": "",
 "LaunchCommand": "npm run dev",
-"WorkingDirectory": "C:\\Users\\james\\source\\repos\\SafetyOpsClient\\SafetyOpsClient.Server\\..\\safetyopsclient.client",
+"WorkingDirectory": "C:\\Users\\james\\Documents\\SafetyOpsApp\\SafetyOpsClient.Server\\..\\safetyopsclient.client",
 "MaxTimeoutInSeconds": "120",
 "KeepRunning": "false"
 }
