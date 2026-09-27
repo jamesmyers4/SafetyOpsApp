@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Stressor> Stressors => Set<Stressor>();
     public DbSet<WorkTask> WorkTasks => Set<WorkTask>();
     public DbSet<MedicalAppointment> MedicalAppointments => Set<MedicalAppointment>();
+    public DbSet<AppUser> Users => Set<AppUser>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,47 +1,52 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SafetyOps.Api.Features.Common;
 
-namespace SafetyOps.Api.Features.Auth
+namespace SafetyOps.Api.Features.Auth;
+
+/// <summary>Cookie sign-in for the SPA.</summary>
+[Route("api/auth")]
+public class AuthController(IAuthService auth) : ApiControllerBase
 {
-    [ApiController]
-    public class AuthController : ControllerBase
+    /// <summary>Signs in and sets the HttpOnly auth cookie.</summary>
+    [HttpPost("login")]
+    [AllowAnonymous]
+    [ProducesResponseType<CurrentUserDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<CurrentUserDto>> Login(LoginRequest request, CancellationToken ct)
     {
-        private const string CookieName = "SafetyOps.Authentication";
-        private const string ValidUsername = "admin";
-        private const string ValidPassword = "admin";
+        var user = await auth.ValidateCredentialsAsync(request.Username, request.Password, ct);
+        if (user is null)
+            return Problem(detail: "Invalid username or password.", statusCode: StatusCodes.Status401Unauthorized);
 
-        [HttpPost("/auth/login")]
-        public IActionResult Login([FromBody] LoginRequest request)
-        {
-            if (request.Username == ValidUsername && request.Password == ValidPassword)
-            {
-                Response.Cookies.Append(CookieName, "authenticated", new CookieOptions
-                {
-                    HttpOnly = true,
-                    SameSite = SameSiteMode.Lax,
-                    Expires = DateTimeOffset.UtcNow.AddHours(8)
-                });
-                return Ok(new { success = true });
-            }
-            return Unauthorized(new { success = false, message = "Invalid credentials" });
-        }
-
-        [HttpGet("/auth/check")]
-        public IActionResult Check()
-        {
-            return Ok(new { authenticated = Request.Cookies.ContainsKey(CookieName) });
-        }
-
-        [HttpPost("/auth/logout")]
-        public IActionResult Logout()
-        {
-            Response.Cookies.Delete(CookieName);
-            return Ok(new { success = true });
-        }
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, AuthService.CreatePrincipal(user));
+        return new CurrentUserDto(user.Id, user.UserName, user.DisplayName);
     }
 
-    public class LoginRequest
+    /// <summary>Signs out and clears the auth cookie.</summary>
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult> Logout()
     {
-        public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return NoContent();
+    }
+
+    /// <summary>Returns the signed-in user, or 401.</summary>
+    [HttpGet("me")]
+    [ProducesResponseType<CurrentUserDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<CurrentUserDto>> Me(CancellationToken ct)
+    {
+        if (AuthService.GetUserId(User) is { } id && await auth.GetUserAsync(id, ct) is { } user)
+            return user;
+
+        // The cookie is valid but the account is gone.
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Problem(statusCode: StatusCodes.Status401Unauthorized);
     }
 }
