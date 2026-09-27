@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace SafetyOps.Api.Controllers
+namespace SafetyOps.Api.Features.Auth
 {
     [ApiController]
     public class AuthController : ControllerBase
