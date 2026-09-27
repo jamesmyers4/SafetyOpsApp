@@ -28,3 +28,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local SQLite data folder
+App_Data/
