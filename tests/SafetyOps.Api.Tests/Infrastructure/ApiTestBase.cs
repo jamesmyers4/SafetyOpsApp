@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SafetyOps.Api.Data;
@@ -11,7 +12,7 @@ namespace SafetyOps.Api.Tests.Infrastructure;
 /// <summary>Gives each test its own app instance, database, and HTTP client.</summary>
 public abstract class ApiTestBase
 {
-    protected static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    protected static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
     protected SafetyOpsApiFactory Factory { get; private set; } = null!;
     protected HttpClient Client { get; private set; } = null!;

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SafetyOps.Api.Data;
 using SafetyOps.Api.Domain;
 using SafetyOps.Api.Features.Common;
+using SafetyOps.Api.Features.Personnel;
 
 namespace SafetyOps.Api.Features.MedicalSurveillance;
 

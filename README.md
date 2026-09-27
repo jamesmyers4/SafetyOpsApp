@@ -1,6 +1,6 @@
 # SafetyOps
 
-A full-stack workplace-safety app: an ASP.NET Core Web API (.NET 10, C#) with a React + TypeScript (Vite) frontend. It covers personnel records, training classes, and medical surveillance appointments, and it doubles as the system under test for the companion end-to-end suite, [SafetyOpsTests-Playwright](https://github.com/jamesmyers4/SafetyOpsTests-Playwright).
+A full-stack workplace-safety app: an ASP.NET Core Web API (.NET 10, C#) with a React + TypeScript (Vite) frontend. It covers personnel records, training classes, medical surveillance appointments, and incident reports, and it doubles as the system under test for the companion end-to-end suite, [SafetyOpsTests-Playwright](https://github.com/jamesmyers4/SafetyOpsTests-Playwright).
 
 > **Status:** work in progress.
 
@@ -51,6 +51,11 @@ Every endpoint except sign-in requires the auth cookie and returns `401` (never 
 | DELETE | `/api/medical-surveillance/appointments/{id}` | 204 |
 | GET | `/api/medical-surveillance/persons` | 200 |
 | GET | `/api/medical-surveillance/work-tasks` | 200 |
+| GET | `/api/incidents` | 200 paged (`?status=&category=` filters) |
+| POST | `/api/incidents` | 201 + `Location` |
+| GET / PUT | `/api/incidents/{id}` | 200 |
+| DELETE | `/api/incidents/{id}` | 204 |
+| GET | `/api/personnel/lookup` | 200 (id/name options) |
 
 ## Getting started
 

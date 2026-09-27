@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.Data.Sqlite;
@@ -7,6 +8,7 @@ using SafetyOps.Api.Data;
 using SafetyOps.Api.Domain;
 using SafetyOps.Api.Features.Auth;
 using SafetyOps.Api.Features.Common;
+using SafetyOps.Api.Features.Incidents;
 using SafetyOps.Api.Features.MedicalSurveillance;
 using SafetyOps.Api.Features.Personnel;
 using SafetyOps.Api.Features.Training;
@@ -21,7 +23,11 @@ builder.Services.AddControllers(options =>
         // Required-ness is declared explicitly with [Required]; a malformed body shouldn't also report "request is required".
         options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
     })
-    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new IsoDateOnlyConverter()));
+    .AddJsonOptions(o =>
+    {
+        o.JsonSerializerOptions.Converters.Add(new IsoDateOnlyConverter());
+        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton(TimeProvider.System);
@@ -31,6 +37,7 @@ builder.Services.AddSafetyOpsAuth(builder.Configuration);
 builder.Services.AddScoped<IPersonnelService, PersonnelService>();
 builder.Services.AddScoped<ITrainingService, TrainingService>();
 builder.Services.AddScoped<IMedicalSurveillanceService, MedicalSurveillanceService>();
+builder.Services.AddScoped<IIncidentService, IncidentService>();
 
 var app = builder.Build();
 

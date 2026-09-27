@@ -5,10 +5,10 @@ import LoadStatus from '../components/LoadStatus';
 import { errorMessage } from '../services/errors';
 import NavLink from '../components/NavLink';
 import PageLayout from '../components/PageLayout';
-import { colors, styles } from '../styles/theme';
+import Pager from '../components/Pager';
+import { styles } from '../styles/theme';
 
 const PAGE_SIZE = 25;
-const pagerButton = { padding: '6px 14px', borderRadius: '4px', border: `1px solid ${colors.border}`, background: 'white', cursor: 'pointer' };
 
 export default function PersonnelHomePage() {
     const [data, setData] = useState<Paged<Person> | null>(null);
@@ -89,17 +89,7 @@ export default function PersonnelHomePage() {
                     ))}
                 </tbody>
             </table>
-            {data && (
-                <div style={{ marginTop: '16px', display: 'flex', gap: '12px', alignItems: 'center', fontSize: '14px', color: colors.muted }}>
-                    <button onClick={() => goToPage(page - 1)} disabled={page <= 1 || loading} style={pagerButton}>
-                        Previous
-                    </button>
-                    <span>Page {data.totalPages === 0 ? 0 : data.page} of {data.totalPages} ({data.totalCount} {data.totalCount === 1 ? 'person' : 'people'})</span>
-                    <button onClick={() => goToPage(page + 1)} disabled={page >= data.totalPages || loading} style={pagerButton}>
-                        Next
-                    </button>
-                </div>
-            )}
+            {data && <Pager data={data} noun={['person', 'people']} disabled={loading} onPage={goToPage} />}
         </PageLayout>
     );
 }

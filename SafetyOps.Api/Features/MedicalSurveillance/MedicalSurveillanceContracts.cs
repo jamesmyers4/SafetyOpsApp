@@ -35,9 +35,6 @@ public sealed record AppointmentStressorRequest
     public string ExamType { get; init; } = string.Empty;
 }
 
-/// <summary>A person who can be selected for evaluation.</summary>
-public sealed record PersonOptionDto(int Id, string Name);
-
 /// <summary>A work task, the stressors it involves, and the exam types that apply.</summary>
 public sealed record WorkTaskDto(string Id, string Name, IReadOnlyList<WorkTaskStressorDto> Stressors, IReadOnlyList<string> ExamTypeOptions);
 

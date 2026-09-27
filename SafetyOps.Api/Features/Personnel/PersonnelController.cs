@@ -14,6 +14,12 @@ public class PersonnelController(IPersonnelService personnel) : ApiControllerBas
     public async Task<PagedResult<PersonDto>> List([FromQuery] ListQuery query, CancellationToken ct) =>
         await personnel.ListAsync(query, ct);
 
+    /// <summary>People as id/name options for pickers (unpaged). Search matches the full name.</summary>
+    [HttpGet("lookup")]
+    [ProducesResponseType<IReadOnlyList<PersonOptionDto>>(StatusCodes.Status200OK)]
+    public async Task<IReadOnlyList<PersonOptionDto>> Lookup([FromQuery] string? search, CancellationToken ct) =>
+        await personnel.LookupAsync(search, ct);
+
     /// <summary>Gets one person.</summary>
     [HttpGet("{id:int}", Name = "GetPerson")]
     [ProducesResponseType<PersonDto>(StatusCodes.Status200OK)]

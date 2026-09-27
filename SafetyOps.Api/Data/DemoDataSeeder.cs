@@ -58,6 +58,26 @@ public static class DemoDataSeeder
             A(people[1], 7, "STR-002", "Periodic"),
             A(people[2], 14, "STR-003", "Exit"));
 
+        var now = clock.GetLocalNow().DateTime;
+        Incident I(int daysAgo, int hour, string location, IncidentCategory category, IncidentSeverity severity, string description, Person reporter, IncidentStatus status) => new()
+        {
+            OccurredAt = now.Date.AddDays(-daysAgo).AddHours(hour),
+            Location = location,
+            Category = category,
+            Severity = severity,
+            Description = description,
+            ReportedBy = reporter,
+            Status = status,
+        };
+
+        db.Incidents.AddRange(
+            I(2, 10, "Building 200 Loading Dock", IncidentCategory.NearMiss, IncidentSeverity.Medium,
+                "Forklift reversed without a spotter; pedestrian stepped clear in time.", people[1], IncidentStatus.Open),
+            I(9, 14, "Building 100 Room 105", IncidentCategory.Injury, IncidentSeverity.Low,
+                "Minor cut to hand while opening a supply carton. First aid applied on site.", people[2], IncidentStatus.UnderReview),
+            I(30, 8, "Building 300 Paint Shop", IncidentCategory.Fire, IncidentSeverity.High,
+                "Small solvent fire in a waste bin, extinguished with a CO2 extinguisher.", people[0], IncidentStatus.Closed));
+
         await db.SaveChangesAsync(ct);
     }
 }
