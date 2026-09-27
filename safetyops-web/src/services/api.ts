@@ -1,6 +1,12 @@
 // Relative URLs: the Vite dev server proxies API calls to ASP.NET Core, and in
 // production the API serves the built SPA from the same origin.
 
+export interface CurrentUser {
+    id: number;
+    userName: string;
+    displayName: string;
+}
+
 export interface Paged<T> {
     items: T[];
     page: number;
@@ -102,6 +108,12 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
         headers: { 'Content-Type': 'application/json' },
         ...options,
     });
+    if (response.status === 401 && !url.startsWith('/api/auth/')) {
+        // Session expired or never existed: send the whole app (not just an iframe) to sign in.
+        const top = window.top ?? window;
+        const returnUrl = encodeURIComponent(top.location.pathname + top.location.search);
+        top.location.assign(`/login?returnUrl=${returnUrl}`);
+    }
     if (!response.ok) {
         const problem = await response.json().catch(() => null) as ProblemDetails | null;
         throw new ApiError(response.status, problemMessage(problem));
@@ -142,13 +154,13 @@ const SEARCH_PAGE_SIZE = 100;
 
 export const api = {
     login: (username: string, password: string) =>
-        request<{ success: boolean }>('/auth/login', { method: 'POST', body: json({ username, password }) }),
+        request<CurrentUser>('/api/auth/login', { method: 'POST', body: json({ username, password }) }),
 
-    checkAuth: () =>
-        request<{ authenticated: boolean }>('/auth/check'),
+    me: () =>
+        request<CurrentUser>('/api/auth/me'),
 
     logout: () =>
-        request<{ success: boolean }>('/auth/logout', { method: 'POST' }),
+        request<void>('/api/auth/logout', { method: 'POST' }),
 
     // Personnel
     listPeople: (params: { search?: string; page?: number; pageSize?: number }) =>

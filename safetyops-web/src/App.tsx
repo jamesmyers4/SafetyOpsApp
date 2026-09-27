@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import RequireAuth from './auth/RequireAuth';
 import SplashPage from './pages/SplashPage';
 import LoginPage from './pages/LoginPage';
 import MainPage from './pages/MainPage';
@@ -32,37 +33,41 @@ export default function App() {
                 {/* Core */}
                 <Route path="/" element={<SplashPage />} />
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/home" element={<MainPage />} />
 
-                {/* Personnel */}
-                <Route path="/personnel" element={<PersonnelHomePage />} />
-                <Route path="/personnel/create" element={<AddUserPage />} />
-                <Route path="/personnel/success" element={<SuccessPage />} />
-                <Route path="/personnel/edit" element={<EditUserSearchPage />} />
-                <Route path="/personnel/edit/:id" element={<EditUserFormPage />} />
-                <Route path="/personnel/access-levels" element={<AccessLevelsPage />} />
+                {/* Everything below requires a signed-in user */}
+                <Route element={<RequireAuth />}>
+                    <Route path="/home" element={<MainPage />} />
 
-                {/* Training — shell and frames */}
-                <Route path="/training" element={<TrainingShellPage />} />
-                <Route path="/training/create-frame" element={<CreateClassFrame />} />
-                <Route path="/training/edit-frame" element={<EditClassFrame />} />
-                <Route path="/training/course-picker" element={<CoursePickerPage />} />
-                <Route path="/training/classes/:id" element={<ClassDetailPage />} />
+                    {/* Personnel */}
+                    <Route path="/personnel" element={<PersonnelHomePage />} />
+                    <Route path="/personnel/create" element={<AddUserPage />} />
+                    <Route path="/personnel/success" element={<SuccessPage />} />
+                    <Route path="/personnel/edit" element={<EditUserSearchPage />} />
+                    <Route path="/personnel/edit/:id" element={<EditUserFormPage />} />
+                    <Route path="/personnel/access-levels" element={<AccessLevelsPage />} />
 
-                {/* Medical surveillance — shell, sub-pages, and frames */}
-                <Route path="/medical-surveillance" element={<MedicalSurveillancePage />} />
-                <Route path="/medical-surveillance/create" element={<MedicalCreatePage />} />
-                <Route path="/medical-surveillance/edit" element={<MedicalEditPage />} />
-                <Route path="/medical-surveillance/create-frame" element={<CreateAppointmentFrame />} />
-                <Route path="/medical-surveillance/edit-frame" element={<EditAppointmentFrame />} />
-                <Route path="/medical-surveillance/person-picker" element={<PersonPickerPage />} />
-                <Route path="/medical-surveillance/work-task-picker" element={<WorkTaskPickerPage />} />
-                <Route path="/medical-surveillance/appointments/:id" element={<AppointmentPage />} />
+                    {/* Training — shell and frames */}
+                    <Route path="/training" element={<TrainingShellPage />} />
+                    <Route path="/training/create-frame" element={<CreateClassFrame />} />
+                    <Route path="/training/edit-frame" element={<EditClassFrame />} />
+                    <Route path="/training/course-picker" element={<CoursePickerPage />} />
+                    <Route path="/training/classes/:id" element={<ClassDetailPage />} />
 
-                {/* Incident reports */}
-                <Route path="/incidents" element={<IncidentsPage />} />
-                <Route path="/incidents/new" element={<IncidentCreatePage />} />
-                <Route path="/incidents/:id" element={<IncidentDetailPage />} />
+                    {/* Medical surveillance — shell, sub-pages, and frames */}
+                    <Route path="/medical-surveillance" element={<MedicalSurveillancePage />} />
+                    <Route path="/medical-surveillance/create" element={<MedicalCreatePage />} />
+                    <Route path="/medical-surveillance/edit" element={<MedicalEditPage />} />
+                    <Route path="/medical-surveillance/create-frame" element={<CreateAppointmentFrame />} />
+                    <Route path="/medical-surveillance/edit-frame" element={<EditAppointmentFrame />} />
+                    <Route path="/medical-surveillance/person-picker" element={<PersonPickerPage />} />
+                    <Route path="/medical-surveillance/work-task-picker" element={<WorkTaskPickerPage />} />
+                    <Route path="/medical-surveillance/appointments/:id" element={<AppointmentPage />} />
+
+                    {/* Incident reports */}
+                    <Route path="/incidents" element={<IncidentsPage />} />
+                    <Route path="/incidents/new" element={<IncidentCreatePage />} />
+                    <Route path="/incidents/:id" element={<IncidentDetailPage />} />
+                </Route>
 
                 <Route path="*" element={<Navigate to="/" />} />
             </Routes>
