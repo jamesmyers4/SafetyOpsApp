@@ -2,7 +2,7 @@
 
 A full-stack workplace-safety app: an ASP.NET Core Web API (.NET 10, C#) with a React + TypeScript (Vite) frontend. It covers personnel records, training classes, and medical surveillance appointments, and it doubles as the system under test for the companion end-to-end suite, [SafetyOpsTests-Playwright](https://github.com/jamesmyers4/SafetyOpsTests-Playwright).
 
-> **Status:** work in progress. Data is currently held in memory and resets when the API restarts. Persistence, validation, authentication, and tests are being added.
+> **Status:** work in progress. Authentication and automated tests are being added.
 
 ## Tech stack
 
@@ -10,14 +10,16 @@ A full-stack workplace-safety app: an ASP.NET Core Web API (.NET 10, C#) with a 
 | ----- | ---------- |
 | Backend | ASP.NET Core Web API, C#, .NET 10 |
 | Frontend | React 19, TypeScript, Vite, react-router |
-| Data | In-memory (per process) |
+| Data | Entity Framework Core 10 + SQLite |
 
 ## Project structure
 
 ```text
 SafetyOps.slnx
 SafetyOps.Api/            ASP.NET Core Web API
-  Controllers/            Auth, Personnel, Training, MedicalSurveillance
+  Domain/                 Entities
+  Data/                   DbContext, configurations, migrations, demo-data seeder
+  Features/<Module>/      Contracts (DTOs), service, controller per module
   Program.cs              App bootstrap; serves the built SPA in production
 safetyops-web/            React + TypeScript SPA (Vite)
   src/services/api.ts     Fetch wrapper for every API call
@@ -27,21 +29,28 @@ safetyops-web/            React + TypeScript SPA (Vite)
 
 ## API endpoints
 
-| Method | Route | Description |
-| ------ | ----- | ----------- |
-| POST | `/auth/login` | Demo login |
-| GET | `/auth/check` | Is the auth cookie present |
-| POST | `/auth/logout` | Clear the auth cookie |
-| GET | `/api/personnel/users?search=` | List or search personnel |
-| POST | `/api/personnel/create` | Create a personnel record |
-| GET / PUT / DELETE | `/api/personnel/users/{id}` | Read, update, delete a personnel record |
-| GET / POST | `/api/training/classes` | List or create training classes |
-| GET / PUT / DELETE | `/api/training/classes/{id}` | Read, update, delete a class |
-| GET | `/api/training/courses` | Course catalog |
-| GET / POST | `/api/medical-surveillance/appointments` | List or create appointments |
-| GET / PUT / DELETE | `/api/medical-surveillance/appointments/{id}` | Read, update, delete an appointment |
-| GET | `/api/medical-surveillance/persons` | People available to evaluate |
-| GET | `/api/medical-surveillance/work-tasks` | Work tasks and their stressors |
+Resource lists are paged (`?search=&page=1&pageSize=25`, max 100) and return `{ items, page, pageSize, totalCount, totalPages }`. Errors use [RFC 9457 problem details](https://www.rfc-editor.org/rfc/rfc9457); validation failures return `400` with an `errors` map. Dates are ISO 8601 (`yyyy-MM-dd`). In Development, interactive docs are at `/scalar` and the OpenAPI document at `/openapi/v1.json`.
+
+| Method | Route | Success |
+| ------ | ----- | ------- |
+| POST | `/auth/login` | 200 (demo login) |
+| GET | `/auth/check` | 200 |
+| POST | `/auth/logout` | 200 |
+| GET | `/api/personnel` | 200 paged |
+| POST | `/api/personnel` | 201 + `Location` |
+| GET / PUT | `/api/personnel/{id}` | 200 |
+| DELETE | `/api/personnel/{id}` | 204 (409 if the person has appointments) |
+| GET | `/api/training/classes` | 200 paged |
+| POST | `/api/training/classes` | 201 + `Location` |
+| GET / PUT | `/api/training/classes/{id}` | 200 |
+| DELETE | `/api/training/classes/{id}` | 204 |
+| GET | `/api/training/courses` | 200 |
+| GET | `/api/medical-surveillance/appointments` | 200 paged |
+| POST | `/api/medical-surveillance/appointments` | 201 + `Location` |
+| GET / PUT | `/api/medical-surveillance/appointments/{id}` | 200 |
+| DELETE | `/api/medical-surveillance/appointments/{id}` | 204 |
+| GET | `/api/medical-surveillance/persons` | 200 |
+| GET | `/api/medical-surveillance/work-tasks` | 200 |
 
 ## Getting started
 
