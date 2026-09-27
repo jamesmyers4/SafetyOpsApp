@@ -8,33 +8,33 @@ public enum ErrorKind
 }
 
 /// <summary>An expected failure a service reports instead of throwing. Controllers turn it into an HTTP response.</summary>
-public sealed record Error(ErrorKind Kind, string Message, string? Field = null)
+public sealed record ServiceError(ErrorKind Kind, string Message, string? Field = null)
 {
-    public static Error NotFound(string message) => new(ErrorKind.NotFound, message);
-    public static Error Invalid(string field, string message) => new(ErrorKind.Invalid, message, field);
-    public static Error Conflict(string message) => new(ErrorKind.Conflict, message);
+    public static ServiceError NotFound(string message) => new(ErrorKind.NotFound, message);
+    public static ServiceError Invalid(string field, string message) => new(ErrorKind.Invalid, message, field);
+    public static ServiceError Conflict(string message) => new(ErrorKind.Conflict, message);
 }
 
-/// <summary>Either a value or an <see cref="Common.Error"/>.</summary>
+/// <summary>Either a value or an <see cref="ServiceError"/>.</summary>
 public readonly record struct Result<T>
 {
-    private Result(T? value, Error? error) => (Value, Error) = (value, error);
+    private Result(T? value, ServiceError? error) => (Value, Error) = (value, error);
 
     public T? Value { get; }
-    public Error? Error { get; }
+    public ServiceError? Error { get; }
 
     public static implicit operator Result<T>(T value) => new(value, null);
-    public static implicit operator Result<T>(Error error) => new(default, error);
+    public static implicit operator Result<T>(ServiceError error) => new(default, error);
 }
 
-/// <summary>Success, or an <see cref="Common.Error"/>.</summary>
+/// <summary>Success, or an <see cref="ServiceError"/>.</summary>
 public readonly record struct Result
 {
-    private Result(Error? error) => Error = error;
+    private Result(ServiceError? error) => Error = error;
 
-    public Error? Error { get; }
+    public ServiceError? Error { get; }
 
     public static Result Success => new(null);
 
-    public static implicit operator Result(Error error) => new(error);
+    public static implicit operator Result(ServiceError error) => new(error);
 }

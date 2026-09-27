@@ -1,30 +1,42 @@
-import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { api, type Paged, type Person } from '../services/api';
-import NavBar from '../components/NavBar';
+import { api } from '../services/api';
+import type { Paged, Person } from '../types/api';
+import LoadStatus from '../components/LoadStatus';
+import { errorMessage } from '../services/errors';
+import NavLink from '../components/NavLink';
+import PageLayout from '../components/PageLayout';
+import { colors, styles } from '../styles/theme';
 
 const PAGE_SIZE = 25;
+const pagerButton = { padding: '6px 14px', borderRadius: '4px', border: `1px solid ${colors.border}`, background: 'white', cursor: 'pointer' };
 
 export default function PersonnelHomePage() {
-    const navigate = useNavigate();
     const [data, setData] = useState<Paged<Person> | null>(null);
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
     const [appliedSearch, setAppliedSearch] = useState('');
     const [reloadKey, setReloadKey] = useState(0);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
         api.listPeople({ search: appliedSearch, page, pageSize: PAGE_SIZE })
             .then(result => { if (!cancelled) { setData(result); setError(null); } })
-            .catch((e: unknown) => { if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load users'); });
+            .catch((e: unknown) => { if (!cancelled) setError(errorMessage(e, 'Failed to load users')); })
+            .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
     }, [appliedSearch, page, reloadKey]);
 
     function handleSearch() {
+        setLoading(true);
         setPage(1);
         setAppliedSearch(search.trim());
+    }
+
+    function goToPage(next: number) {
+        setLoading(true);
+        setPage(next);
     }
 
     async function handleDelete(user: Person) {
@@ -32,82 +44,62 @@ export default function PersonnelHomePage() {
         try {
             await api.deleteUser(user.id);
             // Step back a page if this removed the last row on it; otherwise refresh the current page.
-            if (data && data.items.length === 1 && page > 1) setPage(p => p - 1);
+            if (data && data.items.length === 1 && page > 1) goToPage(page - 1);
             else setReloadKey(k => k + 1);
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'Delete failed');
+            setError(errorMessage(e, 'Delete failed'));
         }
     }
 
-    const navLink: React.CSSProperties = { color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' };
-
     return (
-        <div style={{ background: '#f4f6f9', minHeight: '100vh', margin: 0 }}>
-            <NavBar extra={
-                <a href="#" onClick={e => { e.preventDefault(); navigate('/personnel'); }} style={navLink}>
-                    Personnel
-                </a>
-            } />
-            <div style={{ padding: '40px 60px' }}>
-                <h2 style={{ color: '#1a2744', marginBottom: '30px' }}>Personnel</h2>
-                <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <a href="#" role="link" onClick={e => { e.preventDefault(); navigate('/personnel/create'); }}
-                        style={{ background: '#1a2744', color: 'white', textDecoration: 'none', padding: '10px 24px', borderRadius: '4px', fontSize: '15px' }}>
-                        Add New User
-                    </a>
-                    <a href="#" role="link" onClick={e => { e.preventDefault(); navigate('/personnel/edit'); }}
-                        style={{ background: '#1a2744', color: 'white', textDecoration: 'none', padding: '10px 24px', borderRadius: '4px', fontSize: '15px' }}>
-                        Edit/Search User
-                    </a>
-                    <a href="#" role="link" onClick={e => { e.preventDefault(); navigate('/personnel/access-levels'); }}
-                        style={{ background: '#1a2744', color: 'white', textDecoration: 'none', padding: '10px 24px', borderRadius: '4px', fontSize: '15px' }}>
-                        Access Levels
-                    </a>
-                </div>
-                {error && <div style={{ color: 'red', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
-                <div style={{ marginBottom: '20px' }}>
-                    <input type="text" placeholder="Search users..." aria-label="Filter users"
-                        value={search} onChange={e => setSearch(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                        style={{ padding: '10px', width: '300px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px' }} />
-                    <button onClick={handleSearch} style={{ padding: '10px 20px', background: '#1a2744', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginLeft: '8px' }}>Search</button>
-                </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                    <thead>
-                        <tr>
-                            <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>Name</th>
-                            <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>Department</th>
-                            <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>Category</th>
-                            <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {data?.items.map((user) => (
-                            <tr key={user.id}>
-                                <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>{user.firstName} {user.lastName}</td>
-                                <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>{user.department}</td>
-                                <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>{user.employeeCategory}</td>
-                                <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>
-                                    <button onClick={() => handleDelete(user)} style={{ background: '#cc0000', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer' }}>Delete</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {data && (
-                    <div style={{ marginTop: '16px', display: 'flex', gap: '12px', alignItems: 'center', fontSize: '14px', color: '#555' }}>
-                        <button onClick={() => setPage(p => p - 1)} disabled={page <= 1}
-                            style={{ padding: '6px 14px', borderRadius: '4px', border: '1px solid #ccc', background: 'white', cursor: page <= 1 ? 'default' : 'pointer' }}>
-                            Previous
-                        </button>
-                        <span>Page {data.totalPages === 0 ? 0 : data.page} of {data.totalPages} ({data.totalCount} {data.totalCount === 1 ? 'person' : 'people'})</span>
-                        <button onClick={() => setPage(p => p + 1)} disabled={page >= data.totalPages}
-                            style={{ padding: '6px 14px', borderRadius: '4px', border: '1px solid #ccc', background: 'white', cursor: page >= data.totalPages ? 'default' : 'pointer' }}>
-                            Next
-                        </button>
-                    </div>
-                )}
+        <PageLayout section={{ label: 'Personnel', to: '/personnel' }}>
+            <h2 style={styles.heading}>Personnel</h2>
+            <div style={{ ...styles.buttonRow, marginBottom: '20px' }}>
+                <NavLink to="/personnel/create" role="link" style={styles.buttonLink}>Add New User</NavLink>
+                <NavLink to="/personnel/edit" role="link" style={styles.buttonLink}>Edit/Search User</NavLink>
+                <NavLink to="/personnel/access-levels" role="link" style={styles.buttonLink}>Access Levels</NavLink>
             </div>
-        </div>
+            <div style={styles.field}>
+                <input type="text" placeholder="Search users..." aria-label="Filter users"
+                    value={search} onChange={e => setSearch(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+                    style={{ ...styles.input, width: '300px' }} />
+                <button onClick={handleSearch} style={{ ...styles.smallButton, padding: '10px 20px', marginLeft: '8px' }}>Search</button>
+            </div>
+            <LoadStatus loading={loading && !data} error={error} />
+            <table style={styles.cardTable}>
+                <thead>
+                    <tr>
+                        <th style={styles.th}>Name</th>
+                        <th style={styles.th}>Department</th>
+                        <th style={styles.th}>Category</th>
+                        <th style={styles.th}>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {data?.items.map(user => (
+                        <tr key={user.id}>
+                            <td style={styles.td}>{user.firstName} {user.lastName}</td>
+                            <td style={styles.td}>{user.department}</td>
+                            <td style={styles.td}>{user.employeeCategory}</td>
+                            <td style={styles.td}>
+                                <button onClick={() => handleDelete(user)} style={styles.smallDangerButton}>Delete</button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            {data && (
+                <div style={{ marginTop: '16px', display: 'flex', gap: '12px', alignItems: 'center', fontSize: '14px', color: colors.muted }}>
+                    <button onClick={() => goToPage(page - 1)} disabled={page <= 1 || loading} style={pagerButton}>
+                        Previous
+                    </button>
+                    <span>Page {data.totalPages === 0 ? 0 : data.page} of {data.totalPages} ({data.totalCount} {data.totalCount === 1 ? 'person' : 'people'})</span>
+                    <button onClick={() => goToPage(page + 1)} disabled={page >= data.totalPages || loading} style={pagerButton}>
+                        Next
+                    </button>
+                </div>
+            )}
+        </PageLayout>
     );
 }

@@ -1,98 +1,65 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { api } from '../services/api';
-import NavBar from '../components/NavBar';
+import { errorMessage } from '../services/errors';
+import type { Appointment } from '../types/api';
+import ConfirmDelete from '../components/ConfirmDelete';
+import LoadStatus from '../components/LoadStatus';
+import PageLayout from '../components/PageLayout';
+import { styles } from '../styles/theme';
 
-interface Appointment {
-    id: number;
-    date: string;
-    personName: string;
-    stressors: { stressorId: string; stressorName: string; examType: string }[];
-}
-
+/** Landing page after an appointment is created. */
 export default function AppointmentPage() {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const [appt, setAppt] = useState<Appointment | null>(null);
-    const [showConfirm, setShowConfirm] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [deleted, setDeleted] = useState(false);
 
     useEffect(() => {
-        if (id) {
-            api.getAppointment(Number(id)).then(setAppt).catch(console.error);
-        }
+        let cancelled = false;
+        api.getAppointment(Number(id))
+            .then(result => { if (!cancelled) setAppt(result); })
+            .catch((e: unknown) => { if (!cancelled) setError(errorMessage(e, 'Failed to load appointment')); })
+            .finally(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
     }, [id]);
 
     async function handleDelete() {
         try {
             await api.deleteAppointment(Number(id));
             setDeleted(true);
-            setShowConfirm(false);
-        } catch (e) {
-            console.error(e);
+        } catch (e: unknown) {
+            setError(errorMessage(e, 'Delete failed'));
         }
     }
 
-    const navLink: React.CSSProperties = { color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' };
-
     return (
-        <div style={{ background: '#f4f6f9', minHeight: '100vh', margin: 0 }}>
-            <NavBar extra={
-                <a href="#" onClick={e => { e.preventDefault(); navigate('/medical-surveillance'); }} style={navLink}>
-                    Medical Surveillance
-                </a>
-            } />
-            <div style={{ padding: '40px 60px' }}>
-                <h2 style={{ color: '#1a2744', marginBottom: '20px' }}>Appointment Details</h2>
+        <PageLayout section={{ label: 'Medical Surveillance', to: '/medical-surveillance' }}>
+            <h2 style={{ ...styles.heading, marginBottom: '20px' }}>Appointment Details</h2>
 
-                {deleted ? (
-                    <div style={{ background: '#f8d7da', color: '#721c24', padding: '12px 20px', borderRadius: '4px', marginBottom: '24px', fontSize: '14px' }}>
-                        Appointment deleted successfully.
-                    </div>
-                ) : (
-                    appt && (
-                        <div style={{ background: 'white', padding: '24px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
-                            <p><strong>ID:</strong> {appt.id}</p>
-                            <p><strong>Date:</strong> {appt.date}</p>
-                            <p><strong>Person Evaluated:</strong> {appt.personName}</p>
-                            {appt.stressors.length > 0 && (
-                                <>
-                                    <p><strong>Stressors:</strong></p>
-                                    <ul>
-                                        {appt.stressors.map(s => (
-                                            <li key={s.stressorId}>{s.stressorName} — {s.examType}</li>
-                                        ))}
-                                    </ul>
-                                </>
-                            )}
-                        </div>
-                    )
-                )}
+            <LoadStatus loading={loading} error={error} />
 
-                {!deleted && (
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                        {!showConfirm && (
-                            <button onClick={() => setShowConfirm(true)}
-                                style={{ background: '#cc0000', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '4px', cursor: 'pointer', fontSize: '15px' }}>
-                                Delete Appointment
-                            </button>
-                        )}
-                        {showConfirm && (
+            {deleted && <div role="status" style={{ ...styles.alertDanger, marginBottom: '24px' }}>Appointment deleted successfully.</div>}
+
+            {appt && !deleted && (
+                <>
+                    <div style={styles.card}>
+                        <p><strong>ID:</strong> {appt.id}</p>
+                        <p><strong>Date:</strong> {appt.date}</p>
+                        <p><strong>Person Evaluated:</strong> {appt.personName}</p>
+                        {appt.stressors.length > 0 && (
                             <>
-                                <span style={{ color: '#cc0000', fontWeight: 'bold', alignSelf: 'center' }}>Confirm deletion?</span>
-                                <button onClick={handleDelete}
-                                    style={{ background: '#cc0000', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '4px', cursor: 'pointer', fontSize: '15px' }}>
-                                    Confirm
-                                </button>
-                                <button onClick={() => setShowConfirm(false)}
-                                    style={{ background: '#555', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontSize: '15px' }}>
-                                    Cancel
-                                </button>
+                                <p><strong>Stressors:</strong></p>
+                                <ul>
+                                    {appt.stressors.map(s => <li key={s.stressorId}>{s.stressorName} — {s.examType}</li>)}
+                                </ul>
                             </>
                         )}
                     </div>
-                )}
-            </div>
-        </div>
+                    <ConfirmDelete label="Delete Appointment" prompt="Confirm deletion?" onConfirm={handleDelete} />
+                </>
+            )}
+        </PageLayout>
     );
 }

@@ -25,7 +25,7 @@ public class AuthApiTests : ApiTestBase
         Assert.That(user.UserName, Is.EqualTo(SafetyOpsApiFactory.UserName));
         Assert.That(user.DisplayName, Is.EqualTo("Test User"));
 
-        var cookie = response.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith(AuthSetup.CookieName + "="));
+        var cookie = response.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith(AuthSetup.CookieName + "=", StringComparison.Ordinal));
         Assert.That(cookie, Does.Contain("httponly").IgnoreCase);
         Assert.That(cookie, Does.Contain("secure").IgnoreCase);
         Assert.That(cookie, Does.Contain("samesite=lax").IgnoreCase);

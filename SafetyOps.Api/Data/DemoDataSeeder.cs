@@ -40,7 +40,7 @@ public static class DemoDataSeeder
 
         db.TrainingClasses.AddRange(
             C("ELV-001", 10, "Building 100 Room 101"),
-            C("ELV-001", 5,  "Building 200 Room 202"),
+            C("ELV-001", 5, "Building 200 Room 202"),
             C("ELV-001", 20, "Building 300 Room 303"),
             C("ELH-001", 15, "Building 400 Room 404"),
             C("ELS-001", 25, "Building 100 Room 105"));
@@ -54,8 +54,8 @@ public static class DemoDataSeeder
         };
 
         db.MedicalAppointments.AddRange(
-            A(people[0], 3,  "STR-001", "Initial"),
-            A(people[1], 7,  "STR-002", "Periodic"),
+            A(people[0], 3, "STR-001", "Initial"),
+            A(people[1], 7, "STR-002", "Periodic"),
             A(people[2], 14, "STR-003", "Exit"));
 
         await db.SaveChangesAsync(ct);

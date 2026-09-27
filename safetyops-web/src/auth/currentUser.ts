@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { CurrentUser } from '../services/api';
+import type { CurrentUser } from '../types/api';
 
 export const CurrentUserContext = createContext<CurrentUser | null>(null);
 

@@ -1,140 +1,94 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import NavBar from '../components/NavBar';
+import { errorMessage } from '../services/errors';
+import { useAppMessages } from '../services/messaging';
+import PageLayout from '../components/PageLayout';
+import type { ClassDraft } from '../types/messages';
+import { colors, styles } from '../styles/theme';
 
-interface PendingData {
-    id?: number;
-    courseTitle: string;
-    courseId: string;
-    classDate: string;
-    location: string;
+interface PendingSave extends ClassDraft {
     isUpdate: boolean;
 }
 
+/**
+ * Hosts the create and search/edit class frames. A frame validates its form and posts the
+ * draft here; the shell's Save button is what actually writes to the API.
+ */
 export default function TrainingShellPage() {
     const navigate = useNavigate();
     const [iframeSrc, setIframeSrc] = useState('/training/edit-frame');
-    const [pending, setPending] = useState<PendingData | null>(null);
-    const [showSave, setShowSave] = useState(false);
+    const [pending, setPending] = useState<PendingSave | null>(null);
     const [successMsg, setSuccessMsg] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
 
-    const navLink: React.CSSProperties = { color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' };
-
-    const handleMessage = useCallback((event: MessageEvent) => {
-        const msg = event.data ?? {};
-        if (msg.type === 'trainingReadyToSave') {
-            setPending({ ...msg.data, isUpdate: !!msg.isUpdate });
-            setShowSave(true);
+    useAppMessages(message => {
+        if (message.type === 'trainingReadyToSave') {
+            setPending({ ...message.data, isUpdate: !!message.isUpdate });
             setSuccessMsg('');
-        } else if (msg.type === 'trainingFormReset') {
+        } else if (message.type === 'trainingFormReset') {
             setPending(null);
-            setShowSave(false);
             setSuccessMsg('');
-        } else if (msg.type === 'trainingGoToExisting' && msg.id) {
-            navigate(`/training/classes/${msg.id}`);
+        } else if (message.type === 'trainingGoToExisting') {
+            navigate(`/training/classes/${message.id}`);
         }
-    }, [navigate]);
+    });
 
-    useEffect(() => {
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
-    }, [handleMessage]);
-
-    function switchToCreate() {
+    function switchFrame(path: string) {
         setPending(null);
-        setShowSave(false);
         setSuccessMsg('');
-        setIframeSrc('/training/create-frame?t=' + Date.now());
-    }
-
-    function switchToSearch() {
-        setPending(null);
-        setShowSave(false);
-        setSuccessMsg('');
-        setIframeSrc('/training/edit-frame?t=' + Date.now());
+        setErrorMsg('');
+        setIframeSrc(`${path}?t=${Date.now()}`);
     }
 
     async function handleSave() {
-        if (!pending) {
-            setShowSave(false);
-            return;
-        }
+        if (!pending) return;
         setErrorMsg('');
+        const input = { courseId: pending.courseId, classDate: pending.classDate, location: pending.location };
         try {
             if (pending.isUpdate && pending.id) {
-                await api.updateTrainingClass(pending.id, {
-                    courseId: pending.courseId,
-                    classDate: pending.classDate,
-                    location: pending.location,
-                });
+                await api.updateTrainingClass(pending.id, input);
                 setSuccessMsg('Class saved successfully');
-                setShowSave(false);
                 setPending(null);
             } else {
-                const result = await api.createTrainingClass({
-                    courseId: pending.courseId,
-                    classDate: pending.classDate,
-                    location: pending.location,
-                });
-                navigate(`/training/classes/${result.id}`);
+                const created = await api.createTrainingClass(input);
+                navigate(`/training/classes/${created.id}`);
             }
         } catch (e: unknown) {
-            setErrorMsg(e instanceof Error ? e.message : 'Save failed');
+            setErrorMsg(errorMessage(e, 'Save failed'));
         }
     }
 
+    const tab = { color: colors.navy, textDecoration: 'underline', cursor: 'pointer', fontSize: '15px' };
+
     return (
-        <div style={{ background: '#f4f6f9', minHeight: '100vh', margin: 0 }}>
-            <NavBar extra={
-                <a href="#" onClick={e => { e.preventDefault(); navigate('/training'); }} style={navLink}>
-                    Training
+        <PageLayout section={{ label: 'Training', to: '/training' }} variant="shell">
+            <h2 style={{ ...styles.heading, marginBottom: '16px' }}>Training</h2>
+            <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <a href="#" role="link" onClick={e => { e.preventDefault(); switchFrame('/training/create-frame'); }}
+                    style={{ ...tab, fontWeight: 'bold' }}>
+                    Create Class
                 </a>
-            } />
-            <div style={{ padding: '20px 30px' }}>
-                <h2 style={{ color: '#1a2744', marginBottom: '16px' }}>Training</h2>
-                <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <a href="#" role="link"
-                        onClick={e => { e.preventDefault(); switchToCreate(); }}
-                        style={{ color: '#1a2744', fontWeight: 'bold', textDecoration: 'underline', cursor: 'pointer', fontSize: '15px' }}>
-                        Create Class
-                    </a>
-                    <span style={{ color: '#ccc' }}>|</span>
-                    <a href="#" role="link"
-                        onClick={e => { e.preventDefault(); switchToSearch(); }}
-                        style={{ color: '#1a2744', textDecoration: 'underline', cursor: 'pointer', fontSize: '15px' }}>
-                        Search / Edit Classes
-                    </a>
-                </div>
-
-                {errorMsg && (
-                    <div style={{ background: '#f8d7da', color: '#721c24', padding: '12px 20px', borderRadius: '4px', marginBottom: '12px', fontSize: '14px' }}>
-                        {errorMsg}
-                    </div>
-                )}
-
-                {successMsg && (
-                    <div style={{ background: '#d4edda', color: '#155724', padding: '12px 20px', borderRadius: '4px', marginBottom: '12px', fontSize: '14px' }}>
-                        {successMsg}
-                    </div>
-                )}
-
-                {showSave && (
-                    <div style={{ marginBottom: '12px' }}>
-                        <button onClick={handleSave}
-                            style={{ background: '#1a2744', color: 'white', border: 'none', padding: '10px 28px', fontSize: '15px', borderRadius: '4px', cursor: 'pointer' }}>
-                            Save
-                        </button>
-                    </div>
-                )}
-
-                <iframe
-                    src={iframeSrc}
-                    style={{ width: '100%', height: '72vh', border: '1px solid #ddd', borderRadius: '4px', background: 'white' }}
-                    title="Training Frame"
-                />
+                <span style={{ color: colors.border }}>|</span>
+                <a href="#" role="link" onClick={e => { e.preventDefault(); switchFrame('/training/edit-frame'); }} style={tab}>
+                    Search / Edit Classes
+                </a>
             </div>
-        </div>
+
+            {errorMsg && <div role="alert" style={{ ...styles.alertDanger, marginBottom: '12px' }}>{errorMsg}</div>}
+            {successMsg && <div role="status" style={{ ...styles.alertSuccess, marginBottom: '12px' }}>{successMsg}</div>}
+
+            {pending && (
+                <div style={{ marginBottom: '12px' }}>
+                    <button onClick={handleSave} style={styles.primaryButton}>Save</button>
+                </div>
+            )}
+
+            <iframe
+                src={iframeSrc}
+                style={{ width: '100%', height: '72vh', border: '1px solid #ddd', borderRadius: '4px', background: 'white' }}
+                title="Training Frame"
+            />
+        </PageLayout>
     );
 }

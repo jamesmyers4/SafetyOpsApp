@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
@@ -47,7 +48,7 @@ public sealed class AuthService(AppDbContext db, IPasswordHasher<AppUser> hasher
     public static ClaimsPrincipal CreatePrincipal(AppUser user) =>
         new(new ClaimsIdentity(
             [
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString(CultureInfo.InvariantCulture)),
                 new Claim(ClaimTypes.Name, user.UserName),
             ],
             CookieAuthenticationDefaults.AuthenticationScheme));

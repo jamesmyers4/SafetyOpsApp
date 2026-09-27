@@ -1,49 +1,28 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useState } from 'react';
 import { api } from '../services/api';
-import NavBar from '../components/NavBar';
+import { useAppMessages } from '../services/messaging';
+import { useSearch } from '../hooks/useSearch';
+import LoadStatus from '../components/LoadStatus';
+import PageLayout from '../components/PageLayout';
+import { styles } from '../styles/theme';
 
-interface Appointment {
-    id: number;
-    date: string;
-    personName: string;
-    personId: number;
-}
-
+/** Search appointments, then edit the selected one in an iframe below the results. */
 export default function MedicalEditPage() {
-    const navigate = useNavigate();
     const [search, setSearch] = useState('');
-    const [results, setResults] = useState<Appointment[] | null>(null);
-    const [searched, setSearched] = useState(false);
+    const { results, loading, error, run } = useSearch(useCallback(() => api.getAppointments(search), [search]));
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [frameKey, setFrameKey] = useState(0);
     const [successMsg, setSuccessMsg] = useState('');
 
-    const navLink: React.CSSProperties = { color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' };
-
-    const handleMessage = useCallback((event: MessageEvent) => {
-        if (event.data?.type === 'appointmentUpdated') {
-            setSuccessMsg('Record updated successfully');
-        } else if (event.data?.type === 'appointmentEditCancelled') {
-            setSelectedId(null);
-        }
-    }, []);
-
-    useEffect(() => {
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
-    }, [handleMessage]);
+    useAppMessages(message => {
+        if (message.type === 'appointmentUpdated') setSuccessMsg('Record updated successfully');
+        else if (message.type === 'appointmentEditCancelled') setSelectedId(null);
+    });
 
     async function handleSearch() {
-        try {
-            const appts = await api.getAppointments(search);
-            setResults(appts);
-            setSearched(true);
-            setSelectedId(null);
-            setSuccessMsg('');
-        } catch (e) {
-            console.error(e);
-        }
+        setSelectedId(null);
+        setSuccessMsg('');
+        await run();
     }
 
     function selectRecord(id: number) {
@@ -53,80 +32,64 @@ export default function MedicalEditPage() {
     }
 
     return (
-        <div style={{ background: '#f4f6f9', minHeight: '100vh', margin: 0 }}>
-            <NavBar extra={
-                <a href="#" onClick={e => { e.preventDefault(); navigate('/medical-surveillance'); }} style={navLink}>
-                    Medical Surveillance
-                </a>
-            } />
-            <div style={{ padding: '20px 30px' }}>
-                <h2 style={{ color: '#1a2744', marginBottom: '16px' }}>Search / Edit Medical Surveillance Records</h2>
+        <PageLayout section={{ label: 'Medical Surveillance', to: '/medical-surveillance' }} variant="shell">
+            <h2 style={{ ...styles.heading, marginBottom: '16px' }}>Search / Edit Medical Surveillance Records</h2>
 
-                <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
-                    <input
-                        type="text"
-                        placeholder="Search by name, date, or ID..."
-                        aria-label="Search medical surveillance records"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                        style={{ padding: '10px', width: '360px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px' }}
-                    />
-                    <button onClick={handleSearch}
-                        style={{ padding: '10px 24px', background: '#1a2744', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}>
-                        Search
-                    </button>
-                </div>
-
-                {successMsg && (
-                    <div style={{ background: '#d4edda', color: '#155724', padding: '12px 20px', borderRadius: '4px', marginBottom: '16px', fontSize: '14px', fontWeight: 'bold' }}>
-                        {successMsg}
-                    </div>
-                )}
-
-                {searched && results !== null && results.length === 0 && (
-                    <p style={{ color: '#666' }}>No results found. No appointments match your search.</p>
-                )}
-
-                {results !== null && results.length > 0 && (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '20px' }}>
-                        <thead>
-                            <tr>
-                                <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>ID</th>
-                                <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>Person</th>
-                                <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>Date</th>
-                                <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {results.map(r => (
-                                <tr key={r.id}>
-                                    <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>{r.id}</td>
-                                    <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>{r.personName}</td>
-                                    <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>{r.date}</td>
-                                    <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>
-                                        <a href="#" onClick={e => { e.preventDefault(); selectRecord(r.id); }}
-                                            style={{ color: '#1a2744', fontWeight: 'bold', textDecoration: 'underline', cursor: 'pointer' }}>
-                                            Edit
-                                        </a>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-
-                {selectedId !== null && (
-                    <iframe
-                        key={frameKey}
-                        id="edit-frame"
-                        name="edit-frame"
-                        src={`/medical-surveillance/edit-frame?id=${selectedId}`}
-                        style={{ width: '100%', height: '60vh', border: '1px solid #ddd', borderRadius: '4px', background: 'white' }}
-                        title="Medical Surveillance Edit Frame"
-                    />
-                )}
+            <div style={{ ...styles.frameField, display: 'flex', gap: '8px' }}>
+                <input
+                    type="text"
+                    placeholder="Search by name, date, or ID..."
+                    aria-label="Search medical surveillance records"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+                    style={styles.searchInput}
+                />
+                <button onClick={handleSearch} style={{ ...styles.smallButton, padding: '10px 24px', fontSize: '14px' }}>Search</button>
             </div>
-        </div>
+
+            {successMsg && <div role="status" style={{ ...styles.alertSuccess, fontWeight: 'bold' }}>{successMsg}</div>}
+
+            <LoadStatus loading={loading} error={error} />
+            {!loading && results?.length === 0 && (
+                <p style={styles.emptyText}>No results found. No appointments match your search.</p>
+            )}
+
+            {results && results.length > 0 && (
+                <table style={{ ...styles.cardTable, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '20px' }}>
+                    <thead>
+                        <tr>
+                            <th style={styles.th}>ID</th>
+                            <th style={styles.th}>Person</th>
+                            <th style={styles.th}>Date</th>
+                            <th style={styles.th}>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {results.map(r => (
+                            <tr key={r.id}>
+                                <td style={styles.td}>{r.id}</td>
+                                <td style={styles.td}>{r.personName}</td>
+                                <td style={styles.td}>{r.date}</td>
+                                <td style={styles.td}>
+                                    <a href="#" onClick={e => { e.preventDefault(); selectRecord(r.id); }} style={styles.boldLink}>Edit</a>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
+
+            {selectedId !== null && (
+                <iframe
+                    key={frameKey}
+                    id="edit-frame"
+                    name="edit-frame"
+                    src={`/medical-surveillance/edit-frame?id=${selectedId}`}
+                    style={{ width: '100%', height: '60vh', border: '1px solid #ddd', borderRadius: '4px', background: 'white' }}
+                    title="Medical Surveillance Edit Frame"
+                />
+            )}
+        </PageLayout>
     );
 }

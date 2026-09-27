@@ -1,32 +1,17 @@
-import { useNavigate } from 'react-router-dom';
-import NavBar from '../components/NavBar';
+import NavLink from '../components/NavLink';
+import PageLayout from '../components/PageLayout';
+import { styles } from '../styles/theme';
+
+const tile = { ...styles.buttonLink, padding: '12px 28px' };
 
 export default function MedicalSurveillancePage() {
-    const navigate = useNavigate();
-    const navLink: React.CSSProperties = { color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' };
-
     return (
-        <div style={{ background: '#f4f6f9', minHeight: '100vh', margin: 0 }}>
-            <NavBar extra={
-                <a href="#" onClick={e => { e.preventDefault(); navigate('/medical-surveillance'); }} style={navLink}>
-                    Medical Surveillance
-                </a>
-            } />
-            <div style={{ padding: '40px 60px' }}>
-                <h2 style={{ color: '#1a2744', marginBottom: '24px' }}>Medical Surveillance</h2>
-                <div style={{ display: 'flex', gap: '16px' }}>
-                    <a href="#" role="link"
-                        onClick={e => { e.preventDefault(); navigate('/medical-surveillance/create'); }}
-                        style={{ background: '#1a2744', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: '4px', fontSize: '15px' }}>
-                        Create
-                    </a>
-                    <a href="#" role="link"
-                        onClick={e => { e.preventDefault(); navigate('/medical-surveillance/edit'); }}
-                        style={{ background: '#1a2744', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: '4px', fontSize: '15px' }}>
-                        Edit / Search
-                    </a>
-                </div>
+        <PageLayout section={{ label: 'Medical Surveillance', to: '/medical-surveillance' }}>
+            <h2 style={{ ...styles.heading, marginBottom: '24px' }}>Medical Surveillance</h2>
+            <div style={{ display: 'flex', gap: '16px' }}>
+                <NavLink to="/medical-surveillance/create" role="link" style={tile}>Create</NavLink>
+                <NavLink to="/medical-surveillance/edit" role="link" style={tile}>Edit / Search</NavLink>
             </div>
-        </div>
+        </PageLayout>
     );
 }

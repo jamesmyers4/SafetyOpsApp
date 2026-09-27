@@ -1,52 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { api } from '../services/api';
+import { postToParent, useAppMessages } from '../services/messaging';
+import { useSearch } from '../hooks/useSearch';
+import type { TrainingClass } from '../types/api';
+import CalendarPicker, { CalendarBackdrop } from '../components/CalendarPicker';
+import LoadStatus from '../components/LoadStatus';
+import { colors, styles } from '../styles/theme';
+import { validateClassForm } from './classValidation';
 
-interface TrainingClass {
-    id: number;
-    courseTitle: string;
-    courseId: string;
-    classDate: string;
-    location: string;
-}
-
-type ViewState = 'search' | 'edit';
-
-function CalendarPicker({ onSelect, onClose }: { onSelect: (date: string) => void; onClose: () => void }) {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-
-    return (
-        <div style={{ position: 'absolute', top: '40px', left: 0, background: 'white', border: '1px solid #ccc', borderRadius: '4px', padding: '12px', zIndex: 100, boxShadow: '0 4px 8px rgba(0,0,0,0.15)', minWidth: '240px' }}>
-            <div style={{ fontWeight: 'bold', color: '#1a2744', marginBottom: '8px', textAlign: 'center' }}>
-                {now.toLocaleString('default', { month: 'long' })} {year}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {days.map(d => (
-                    <a key={d} href="#"
-                        onClick={e => {
-                            e.preventDefault();
-                            const m = String(month + 1).padStart(2, '0');
-                            const day = String(d).padStart(2, '0');
-                            onSelect(`${m}/${day}/${year}`);
-                            onClose();
-                        }}
-                        style={{ display: 'inline-block', width: '30px', textAlign: 'center', padding: '4px', cursor: 'pointer', color: '#1a2744', textDecoration: 'none', borderRadius: '3px' }}>
-                        {d}
-                    </a>
-                ))}
-            </div>
-        </div>
-    );
-}
-
+/** Runs inside the Training shell's iframe: search for a class, then edit it. */
 export default function EditClassFrame() {
-    const [viewState, setViewState] = useState<ViewState>('search');
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchResults, setSearchResults] = useState<TrainingClass[]>([]);
-    const [searched, setSearched] = useState(false);
+    const search = useSearch(useCallback(() => api.getTrainingClasses(searchTerm), [searchTerm]));
 
     const [editClass, setEditClass] = useState<TrainingClass | null>(null);
     const [courseTitle, setCourseTitle] = useState('');
@@ -57,27 +22,12 @@ export default function EditClassFrame() {
     const [errors, setErrors] = useState<string[]>([]);
     const [showDuplicate, setShowDuplicate] = useState(false);
 
-    const handleMessage = useCallback((event: MessageEvent) => {
-        if (event.data?.type === 'courseSelected') {
-            setCourseTitle(event.data.courseTitle ?? '');
-            setCourseId(event.data.courseId ?? '');
+    useAppMessages(message => {
+        if (message.type === 'courseSelected') {
+            setCourseTitle(message.courseTitle);
+            setCourseId(message.courseId);
         }
-    }, []);
-
-    useEffect(() => {
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
-    }, [handleMessage]);
-
-    async function handleSearch() {
-        try {
-            const results = await api.getTrainingClasses(searchTerm);
-            setSearchResults(results);
-            setSearched(true);
-        } catch (e) {
-            console.error(e);
-        }
-    }
+    });
 
     function openForEdit(cls: TrainingClass) {
         setEditClass(cls);
@@ -87,31 +37,25 @@ export default function EditClassFrame() {
         setLocation(cls.location);
         setErrors([]);
         setShowDuplicate(false);
-        setViewState('edit');
     }
 
-    function validateDate(d: string): string | null {
-        if (!d) return 'Class Date is required.';
-        const parsed = new Date(d);
-        if (isNaN(parsed.getTime())) return 'Invalid date. Please enter a valid date.';
-        if (parsed > new Date()) return 'Future dates are not allowed.';
-        return null;
+    function closeEditor() {
+        setEditClass(null);
+        setErrors([]);
+        setShowDuplicate(false);
+        postToParent({ type: 'trainingFormReset' });
     }
 
     function postReadyToSave() {
-        window.parent.postMessage({
+        postToParent({
             type: 'trainingReadyToSave',
             data: { id: editClass?.id, courseTitle, courseId, classDate, location },
             isUpdate: true,
-        }, '*');
+        });
     }
 
     async function handleUpdate() {
-        const errs: string[] = [];
-        if (!courseTitle.trim()) errs.push('Course ID is required.');
-        const dateErr = validateDate(classDate);
-        if (dateErr) errs.push(dateErr);
-        if (!location.trim()) errs.push('Specific location is required');
+        const errs = validateClassForm(courseId, classDate, location);
         setErrors(errs);
         if (errs.length > 0) return;
 
@@ -128,134 +72,101 @@ export default function EditClassFrame() {
         window.open('/training/course-picker', 'coursePicker', 'width=640,height=480,resizable=yes');
     }
 
-    return (
-        <div style={{ fontFamily: 'Arial, sans-serif', padding: '20px', background: 'white', minHeight: '100vh' }}>
-            {viewState === 'search' && (
-                <>
-                    <h3 style={{ color: '#1a2744', marginTop: 0 }}>
-                        <a href="#" style={{ color: '#1a2744', textDecoration: 'underline' }}>Find / Search Classes</a>
-                    </h3>
-                    <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
-                        <input
-                            id="class-search"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                            placeholder="Search by course or location..."
-                            style={{ padding: '8px', width: '300px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px' }}
-                        />
-                        <button onClick={handleSearch}
-                            style={{ background: '#1a2744', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer' }}>
-                            Search
-                        </button>
-                    </div>
+    if (!editClass) {
+        const results = search.results;
+        return (
+            <div style={styles.frame}>
+                <h3 style={styles.frameHeading}>
+                    <a href="#" style={{ color: colors.navy, textDecoration: 'underline' }}>Find / Search Classes</a>
+                </h3>
+                <div style={{ ...styles.frameField, display: 'flex', gap: '8px' }}>
+                    <input id="class-search" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') search.run(); }}
+                        placeholder="Search by course or location..." style={{ ...styles.frameInput, width: '300px' }} />
+                    <button onClick={search.run} style={{ ...styles.smallButton, padding: '8px 20px' }}>Search</button>
+                </div>
 
-                    {searched && searchResults.length === 0 && (
-                        <p style={{ color: '#666' }}>No results found.</p>
-                    )}
+                <LoadStatus loading={search.loading} error={search.error} />
+                {!search.loading && results?.length === 0 && <p style={styles.emptyText}>No results found.</p>}
 
-                    {searchResults.length > 0 && (
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr>
-                                    <th style={{ background: '#1a2744', color: 'white', padding: '10px', textAlign: 'left' }}>Course</th>
-                                    <th style={{ background: '#1a2744', color: 'white', padding: '10px', textAlign: 'left' }}>Date</th>
-                                    <th style={{ background: '#1a2744', color: 'white', padding: '10px', textAlign: 'left' }}>Location</th>
+                {results && results.length > 0 && (
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.compactTh}>Course</th>
+                                <th style={styles.compactTh}>Date</th>
+                                <th style={styles.compactTh}>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {results.map(cls => (
+                                <tr key={cls.id}>
+                                    <td style={styles.compactTd}>
+                                        <a href="#" onClick={e => { e.preventDefault(); openForEdit(cls); }} style={styles.textLink}>
+                                            {cls.courseTitle}
+                                        </a>
+                                    </td>
+                                    <td style={styles.compactTd}>{cls.classDate}</td>
+                                    <td style={styles.compactTd}>{cls.location}</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {searchResults.map(cls => (
-                                    <tr key={cls.id}>
-                                        <td style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
-                                            <a href="#" onClick={e => { e.preventDefault(); openForEdit(cls); }}
-                                                style={{ color: '#1a2744', textDecoration: 'underline', cursor: 'pointer' }}>
-                                                {cls.courseTitle}
-                                            </a>
-                                        </td>
-                                        <td style={{ padding: '10px', borderBottom: '1px solid #eee' }}>{cls.classDate}</td>
-                                        <td style={{ padding: '10px', borderBottom: '1px solid #eee' }}>{cls.location}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div style={styles.frame}>
+            <h3 style={styles.frameHeading}>Edit Training Class</h3>
+
+            {errors.length > 0 && (
+                <div role="alert" style={{ ...styles.errorText, marginBottom: '12px' }}>
+                    {errors.map((e, i) => <div key={i}>{e}</div>)}
+                </div>
             )}
 
-            {viewState === 'edit' && (
-                <>
-                    <h3 style={{ color: '#1a2744', marginTop: 0 }}>Edit Training Class</h3>
+            <div style={{ ...styles.frameField, position: 'relative' }}>
+                <label style={styles.frameLabel}>Class Date</label>
+                <input id="class-date" value={classDate} onChange={e => setClassDate(e.target.value)} onClick={() => setShowCalendar(true)}
+                    placeholder="MM/DD/YYYY" style={{ ...styles.frameInput, width: '200px' }} />
+                {showCalendar && <CalendarPicker onSelect={setClassDate} onClose={() => setShowCalendar(false)} />}
+            </div>
 
-                    {errors.length > 0 && (
-                        <div style={{ color: 'red', marginBottom: '12px', fontSize: '14px' }}>
-                            {errors.map((e, i) => <div key={i}>{e}</div>)}
-                        </div>
-                    )}
+            <div style={styles.frameField}>
+                <label style={styles.frameLabel}>Location</label>
+                <input id="class-location" value={location} onChange={e => setLocation(e.target.value)} style={styles.frameInput} />
+            </div>
 
-                    <div style={{ marginBottom: '16px', position: 'relative' }}>
-                        <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Class Date</label>
-                        <input
-                            id="class-date"
-                            value={classDate}
-                            onChange={e => setClassDate(e.target.value)}
-                            onClick={() => setShowCalendar(true)}
-                            placeholder="MM/DD/YYYY"
-                            style={{ padding: '8px', width: '200px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px' }}
-                        />
-                        {showCalendar && (
-                            <CalendarPicker
-                                onSelect={d => { setClassDate(d); setShowCalendar(false); }}
-                                onClose={() => setShowCalendar(false)}
-                            />
-                        )}
-                    </div>
+            <div style={styles.field}>
+                <label style={styles.frameLabel}>Course Title</label>
+                <input id="course-title" value={courseTitle} onChange={e => setCourseTitle(e.target.value)}
+                    style={{ ...styles.frameInput, backgroundColor: colors.readOnlyBg }} />
+                <button id="course-picker-button" onClick={openCoursePicker} style={{ ...styles.smallButton, marginLeft: '8px' }}>
+                    ...
+                </button>
+            </div>
 
-                    <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Location</label>
-                        <input id="class-location" value={location} onChange={e => setLocation(e.target.value)}
-                            style={{ padding: '8px', width: '350px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px' }} />
-                    </div>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+                <button onClick={handleUpdate} style={styles.primaryButton}>Update</button>
+                <button onClick={closeEditor} style={styles.secondaryButton}>Cancel</button>
+            </div>
 
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>Course Title</label>
-                        <input id="course-title" value={courseTitle} onChange={e => setCourseTitle(e.target.value)}
-                            style={{ padding: '8px', width: '350px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px', backgroundColor: '#f5f5f5' }} />
-                        <button id="course-picker-button" onClick={openCoursePicker}
-                            style={{ marginLeft: '8px', background: '#1a2744', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>
-                            ...
+            {showDuplicate && (
+                <div style={styles.alertWarning}>
+                    <p style={{ fontWeight: 'bold', color: '#856404', marginTop: 0 }}>
+                        A duplicate record may exist. How would you like to proceed?
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={() => { setShowDuplicate(false); postReadyToSave(); }} style={styles.smallButton}>
+                            Continue with update
                         </button>
                     </div>
-
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-                        <button onClick={handleUpdate}
-                            style={{ background: '#1a2744', color: 'white', border: 'none', padding: '10px 28px', fontSize: '15px', borderRadius: '4px', cursor: 'pointer' }}>
-                            Update
-                        </button>
-                        <button onClick={() => { setViewState('search'); setErrors([]); setShowDuplicate(false); window.parent.postMessage({ type: 'trainingFormReset' }, '*'); }}
-                            style={{ background: '#555', color: 'white', border: 'none', padding: '10px 20px', fontSize: '15px', borderRadius: '4px', cursor: 'pointer' }}>
-                            Cancel
-                        </button>
-                    </div>
-
-                    {showDuplicate && (
-                        <div style={{ padding: '16px', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px' }}>
-                            <p style={{ fontWeight: 'bold', color: '#856404', marginTop: 0 }}>
-                                A duplicate record may exist. How would you like to proceed?
-                            </p>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <button onClick={() => { setShowDuplicate(false); postReadyToSave(); }}
-                                    style={{ background: '#1a2744', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>
-                                    Continue with update
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </>
+                </div>
             )}
 
-            {showCalendar && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 50 }} onClick={() => setShowCalendar(false)} />
-            )}
+            {showCalendar && <CalendarBackdrop onClose={() => setShowCalendar(false)} />}
         </div>
     );
 }

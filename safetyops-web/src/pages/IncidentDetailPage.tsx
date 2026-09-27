@@ -1,22 +1,13 @@
-import { useNavigate, useParams } from 'react-router-dom';
-import NavBar from '../components/NavBar';
+import { useParams } from 'react-router-dom';
+import PageLayout from '../components/PageLayout';
+import { colors, styles } from '../styles/theme';
 
 export default function IncidentDetailPage() {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
-    const navLink: React.CSSProperties = { color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' };
-
     return (
-        <div style={{ background: '#f4f6f9', minHeight: '100vh', margin: 0 }}>
-            <NavBar extra={
-                <a href="#" onClick={e => { e.preventDefault(); navigate('/incidents'); }} style={navLink}>
-                    Incident Reports
-                </a>
-            } />
-            <div style={{ padding: '40px 60px' }}>
-                <h2 style={{ color: '#1a2744', marginBottom: '20px' }}>Incident Report #{id}</h2>
-                <p style={{ color: '#555' }}>Incident detail — full implementation pending.</p>
-            </div>
-        </div>
+        <PageLayout section={{ label: 'Incident Reports', to: '/incidents' }}>
+            <h2 style={{ ...styles.heading, marginBottom: '20px' }}>Incident Report #{id}</h2>
+            <p style={{ color: colors.muted }}>Incident detail — full implementation pending.</p>
+        </PageLayout>
     );
 }

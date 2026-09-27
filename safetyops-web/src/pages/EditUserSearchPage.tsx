@@ -1,94 +1,61 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useState } from 'react';
 import { api } from '../services/api';
-import NavBar from '../components/NavBar';
-
-interface User {
-    id: number;
-    firstName: string;
-    lastName: string;
-    department: string;
-    employeeCategory: string;
-}
+import { useSearch } from '../hooks/useSearch';
+import LoadStatus from '../components/LoadStatus';
+import NavLink from '../components/NavLink';
+import PageLayout from '../components/PageLayout';
+import { styles } from '../styles/theme';
 
 export default function EditUserSearchPage() {
-    const navigate = useNavigate();
     const [search, setSearch] = useState('');
-    const [users, setUsers] = useState<User[] | null>(null);
-    const [searched, setSearched] = useState(false);
-
-    async function handleSearch() {
-        try {
-            const results = await api.getUsers(search);
-            setUsers(results);
-            setSearched(true);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    const navLink: React.CSSProperties = { color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' };
+    const { results: users, loading, error, run } = useSearch(useCallback(() => api.getUsers(search), [search]));
 
     return (
-        <div style={{ background: '#f4f6f9', minHeight: '100vh', margin: 0 }}>
-            <NavBar extra={
-                <a href="#" onClick={e => { e.preventDefault(); navigate('/personnel'); }} style={navLink}>
-                    Personnel
-                </a>
-            } />
-            <div style={{ padding: '40px 60px' }}>
-                <h2 style={{ color: '#1a2744', marginBottom: '30px' }}>Edit / Search User</h2>
-                <div style={{ marginBottom: '24px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                        type="text"
-                        placeholder="Search users by name or department..."
-                        aria-label="Search users"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-                        style={{ padding: '10px', width: '380px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px' }}
-                    />
-                    <button
-                        onClick={handleSearch}
-                        style={{ padding: '10px 24px', background: '#1a2744', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}
-                    >
-                        Search
-                    </button>
-                </div>
-
-                {searched && users !== null && users.length === 0 && (
-                    <p style={{ color: '#666' }}>No results found for your search.</p>
-                )}
-
-                {users !== null && users.length > 0 && (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                        <thead>
-                            <tr>
-                                <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>Name</th>
-                                <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>Department</th>
-                                <th style={{ background: '#1a2744', color: 'white', padding: '12px 16px', textAlign: 'left' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users.map(user => (
-                                <tr key={user.id}>
-                                    <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>{user.firstName} {user.lastName}</td>
-                                    <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>{user.department}</td>
-                                    <td style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>
-                                        <a
-                                            href="#"
-                                            onClick={e => { e.preventDefault(); navigate(`/personnel/edit/${user.id}`); }}
-                                            style={{ color: '#1a2744', fontWeight: 'bold', textDecoration: 'underline', cursor: 'pointer' }}
-                                        >
-                                            Edit
-                                        </a>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
+        <PageLayout section={{ label: 'Personnel', to: '/personnel' }}>
+            <h2 style={styles.heading}>Edit / Search User</h2>
+            <div style={{ marginBottom: '24px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                    type="text"
+                    placeholder="Search users by name or department..."
+                    aria-label="Search users"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') run(); }}
+                    style={{ ...styles.searchInput, width: '380px' }}
+                />
+                <button onClick={run} style={{ ...styles.smallButton, padding: '10px 24px', fontSize: '14px' }}>
+                    Search
+                </button>
             </div>
-        </div>
+
+            <LoadStatus loading={loading} error={error} />
+
+            {!loading && users?.length === 0 && (
+                <p style={styles.emptyText}>No results found for your search.</p>
+            )}
+
+            {users && users.length > 0 && (
+                <table style={styles.cardTable}>
+                    <thead>
+                        <tr>
+                            <th style={styles.th}>Name</th>
+                            <th style={styles.th}>Department</th>
+                            <th style={styles.th}>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map(user => (
+                            <tr key={user.id}>
+                                <td style={styles.td}>{user.firstName} {user.lastName}</td>
+                                <td style={styles.td}>{user.department}</td>
+                                <td style={styles.td}>
+                                    <NavLink to={`/personnel/edit/${user.id}`} style={styles.boldLink}>Edit</NavLink>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
+        </PageLayout>
     );
 }

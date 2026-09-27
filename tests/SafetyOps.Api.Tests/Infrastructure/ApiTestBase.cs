@@ -38,17 +38,17 @@ public abstract class ApiTestBase
 
     protected static DateOnly Today => DateOnly.FromDateTime(SafetyOpsApiFactory.Now.UtcDateTime);
 
-    protected async Task<T> ReadAsync<T>(HttpResponseMessage response) =>
+    protected static async Task<T> ReadAsync<T>(HttpResponseMessage response) =>
         (await response.Content.ReadFromJsonAsync<T>(Json))!;
 
-    protected async Task<ValidationProblemDetails> ReadValidationProblemAsync(HttpResponseMessage response)
+    protected static async Task<ValidationProblemDetails> ReadValidationProblemAsync(HttpResponseMessage response)
     {
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/problem+json"));
         return (await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(Json))!;
     }
 
-    protected async Task<ProblemDetails> ReadProblemAsync(HttpResponseMessage response, HttpStatusCode expected)
+    protected static async Task<ProblemDetails> ReadProblemAsync(HttpResponseMessage response, HttpStatusCode expected)
     {
         Assert.That(response.StatusCode, Is.EqualTo(expected));
         Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/problem+json"));

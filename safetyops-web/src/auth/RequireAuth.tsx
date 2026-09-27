@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { api, type CurrentUser } from '../services/api';
+import { api } from '../services/api';
+import type { CurrentUser } from '../types/api';
 import { CurrentUserContext } from './currentUser';
 
 type AuthState = { status: 'loading' } | { status: 'signedIn'; user: CurrentUser } | { status: 'signedOut' };
