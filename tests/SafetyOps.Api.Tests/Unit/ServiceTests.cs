@@ -2,6 +2,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Time.Testing;
 using SafetyOps.Api.Data;
+using SafetyOps.Api.Domain;
+using SafetyOps.Api.Features.Access;
 using SafetyOps.Api.Features.Common;
 using SafetyOps.Api.Features.Training;
 
@@ -24,6 +26,14 @@ public class ServiceTests
         _clock = new FakeTimeProvider(new DateTimeOffset(2026, 6, 15, 23, 30, 0, TimeSpan.Zero));
     }
 
+    /// <summary>Access as an Admin on the root org unit, i.e. everything.</summary>
+    private FixedAccessScope RootAdmin() => new(new AccessSnapshot(_db.OrgUnits.ToList(), [(OrgUnit.RootId, Role.Admin)]));
+
+    private sealed class FixedAccessScope(AccessSnapshot snapshot) : IAccessScope
+    {
+        public Task<AccessSnapshot> GetAsync(CancellationToken ct = default) => Task.FromResult(snapshot);
+    }
+
     [TearDown]
     public async Task TearDown()
     {
@@ -34,7 +44,7 @@ public class ServiceTests
     [Test]
     public async Task Training_future_date_rule_follows_the_clock()
     {
-        var service = new TrainingService(_db, _clock);
+        var service = new TrainingService(_db, _clock, RootAdmin());
         var request = new TrainingClassRequest { CourseId = "ELV-001", ClassDate = new DateOnly(2026, 6, 16), Location = "Room 1" };
 
         var tooEarly = await service.CreateClassAsync(request);
@@ -49,12 +59,12 @@ public class ServiceTests
     [Test]
     public async Task Training_update_trims_location_and_switches_course()
     {
-        var service = new TrainingService(_db, _clock);
+        var service = new TrainingService(_db, _clock, RootAdmin());
         var created = (await service.CreateClassAsync(new() { CourseId = "ELV-001", ClassDate = new DateOnly(2026, 6, 1), Location = "Room 1" })).Value!;
 
         var updated = await service.UpdateClassAsync(created.Id, new() { CourseId = "FAC-001", ClassDate = new DateOnly(2026, 6, 2), Location = "  Room 2  " });
 
-        Assert.That(updated.Value, Is.EqualTo(new TrainingClassDto(created.Id, "First Aid and CPR", "FAC-001", new DateOnly(2026, 6, 2), "Room 2")));
+        Assert.That(updated.Value, Is.EqualTo(new TrainingClassDto(created.Id, "First Aid and CPR", "FAC-001", new DateOnly(2026, 6, 2), "Room 2", 1, "SafetyOps Industries")));
     }
 
     [Test]

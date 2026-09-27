@@ -43,6 +43,8 @@ public sealed class SafetyOpsApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Auth:DemoUsers:0:UserName", UserName);
         builder.UseSetting("Auth:DemoUsers:0:Password", Password);
         builder.UseSetting("Auth:DemoUsers:0:DisplayName", "Test User");
+        builder.UseSetting("Auth:DemoUsers:0:Role", "Admin");
+        builder.UseSetting("Auth:DemoUsers:0:OrgUnit", "ORG");
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();

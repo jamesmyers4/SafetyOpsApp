@@ -42,7 +42,7 @@ public class IncidentsApiTests : ApiTestBase
         Assert.That(response.Headers.Location?.AbsolutePath, Is.EqualTo($"/api/incidents/{created.Id}"));
         Assert.That(created with { Id = 0 }, Is.EqualTo(new IncidentDto(
             0, new DateTime(2026, 6, 14, 9, 30, 0), "Building 1 Dock", IncidentCategory.NearMiss, IncidentSeverity.Medium,
-            "Forklift reversed without a spotter.", _reporterId, "Jane Doe", IncidentStatus.Open)));
+            "Forklift reversed without a spotter.", _reporterId, "Jane Doe", IncidentStatus.Open, 1, "SafetyOps Industries")));
         var json = await response.Content.ReadAsStringAsync();
         Assert.That(json, Does.Contain("\"category\":\"NearMiss\"").And.Contain("\"status\":\"Open\"").And.Contain("\"occurredAt\":\"2026-06-14T09:30:00\""));
     }
