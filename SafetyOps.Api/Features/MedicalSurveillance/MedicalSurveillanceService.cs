@@ -148,5 +148,7 @@ public sealed class MedicalSurveillanceService(AppDbContext db, IAccessScope sco
         a.Stressors
             .OrderBy(s => s.StressorId)
             .Select(s => new AppointmentStressorDto(s.Stressor.Code, s.Stressor.Name, s.ExamType))
-            .ToList());
+            .ToList(),
+        a.Person.OrgUnitId,
+        a.Person.OrgUnit.Name);
 }

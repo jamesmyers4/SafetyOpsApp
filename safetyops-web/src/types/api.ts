@@ -1,7 +1,45 @@
 // Request and response shapes for the SafetyOps API. Dates in these types are the UI's
 // MM/DD/YYYY strings; services/api.ts converts to and from the API's ISO dates.
 
+export const ROLES = { Viewer: 'Viewer', Manager: 'Manager', Admin: 'Admin' } as const;
+export type Role = keyof typeof ROLES;
+const ROLE_RANK: Record<Role, number> = { Viewer: 1, Manager: 2, Admin: 3 };
+export const roleAtLeast = (role: Role | null | undefined, minimum: Role) => !!role && ROLE_RANK[role] >= ROLE_RANK[minimum];
+
+export interface AccessSummary {
+    canRead: boolean;
+    canWrite: boolean;
+    canManageRoles: boolean;
+    grants: { orgUnitId: number; orgUnitName: string; role: Role }[];
+}
+
 export interface CurrentUser {
+    id: number;
+    userName: string;
+    displayName: string;
+    access: AccessSummary;
+}
+
+/** An org unit the signed-in user can see, with their effective role on it. */
+export interface OrgUnit {
+    id: number;
+    code: string;
+    name: string;
+    parentId: number | null;
+    myRole: Role;
+}
+
+export interface RoleAssignment {
+    id: number;
+    userId: number;
+    userName: string;
+    displayName: string;
+    orgUnitId: number;
+    orgUnitName: string;
+    role: Role;
+}
+
+export interface UserOption {
     id: number;
     userName: string;
     displayName: string;
@@ -25,8 +63,10 @@ export interface Person {
     employeeCategory: string;
     subscription: string;
     employeeNumber: string;
+    orgUnitId: number;
+    orgUnitName: string;
 }
-export type PersonInput = Omit<Person, 'id'>;
+export type PersonInput = Omit<Person, 'id' | 'orgUnitName' | 'orgUnitId'> & { orgUnitId?: number };
 
 export interface TrainingClass {
     id: number;
@@ -35,11 +75,14 @@ export interface TrainingClass {
     /** MM/DD/YYYY (converted from the API's ISO date) */
     classDate: string;
     location: string;
+    orgUnitId: number;
+    orgUnitName: string;
 }
 export interface TrainingClassInput {
     courseId: string;
     classDate: string;
     location: string;
+    orgUnitId?: number;
 }
 
 export interface Course {
@@ -59,6 +102,9 @@ export interface Appointment {
     personId: number;
     personName: string;
     stressors: AppointmentStressor[];
+    /** The person's org unit; access to the appointment follows it. */
+    orgUnitId: number;
+    orgUnitName: string;
 }
 export interface AppointmentInput {
     date: string;
@@ -105,5 +151,7 @@ export interface Incident {
     reportedById: number;
     reportedByName: string;
     status: IncidentStatus;
+    orgUnitId: number;
+    orgUnitName: string;
 }
-export type IncidentInput = Omit<Incident, 'id' | 'reportedByName'>;
+export type IncidentInput = Omit<Incident, 'id' | 'reportedByName' | 'orgUnitName'>;

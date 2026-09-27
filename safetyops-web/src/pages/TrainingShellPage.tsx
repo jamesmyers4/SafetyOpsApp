@@ -6,6 +6,7 @@ import { useAppMessages } from '../services/messaging';
 import PageLayout from '../components/PageLayout';
 import type { ClassDraft } from '../types/messages';
 import { colors, styles } from '../styles/theme';
+import { useAccess } from '../auth/currentUser';
 
 interface PendingSave extends ClassDraft {
     isUpdate: boolean;
@@ -21,6 +22,7 @@ export default function TrainingShellPage() {
     const [pending, setPending] = useState<PendingSave | null>(null);
     const [successMsg, setSuccessMsg] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
+    const access = useAccess();
 
     useAppMessages(message => {
         if (message.type === 'trainingReadyToSave') {
@@ -44,7 +46,7 @@ export default function TrainingShellPage() {
     async function handleSave() {
         if (!pending) return;
         setErrorMsg('');
-        const input = { courseId: pending.courseId, classDate: pending.classDate, location: pending.location };
+        const input = { courseId: pending.courseId, classDate: pending.classDate, location: pending.location, orgUnitId: pending.orgUnitId };
         try {
             if (pending.isUpdate && pending.id) {
                 await api.updateTrainingClass(pending.id, input);
@@ -65,11 +67,15 @@ export default function TrainingShellPage() {
         <PageLayout section={{ label: 'Training', to: '/training' }} variant="shell">
             <h2 style={{ ...styles.heading, marginBottom: '16px' }}>Training</h2>
             <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <a href="#" role="link" onClick={e => { e.preventDefault(); switchFrame('/training/create-frame'); }}
-                    style={{ ...tab, fontWeight: 'bold' }}>
-                    Create Class
-                </a>
-                <span style={{ color: colors.border }}>|</span>
+                {access.canWriteAnywhere && (
+                    <>
+                        <a href="#" role="link" onClick={e => { e.preventDefault(); switchFrame('/training/create-frame'); }}
+                            style={{ ...tab, fontWeight: 'bold' }}>
+                            Create Class
+                        </a>
+                        <span style={{ color: colors.border }}>|</span>
+                    </>
+                )}
                 <a href="#" role="link" onClick={e => { e.preventDefault(); switchFrame('/training/edit-frame'); }} style={tab}>
                     Search / Edit Classes
                 </a>

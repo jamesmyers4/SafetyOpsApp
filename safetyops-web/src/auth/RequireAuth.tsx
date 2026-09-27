@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
-import type { CurrentUser } from '../types/api';
-import { CurrentUserContext } from './currentUser';
+import { SessionContext, type Session } from './currentUser';
 
-type AuthState = { status: 'loading' } | { status: 'signedIn'; user: CurrentUser } | { status: 'signedOut' };
+type AuthState = { status: 'loading' } | { status: 'signedIn'; session: Session } | { status: 'signedOut' };
 
 /** Layout route: renders its child routes only for a signed-in user, otherwise sends them to /login. */
 export default function RequireAuth() {
@@ -13,9 +12,16 @@ export default function RequireAuth() {
 
     useEffect(() => {
         let cancelled = false;
-        api.me()
-            .then(user => { if (!cancelled) setState({ status: 'signedIn', user }); })
-            .catch(() => { if (!cancelled) setState({ status: 'signedOut' }); });
+        (async () => {
+            try {
+                const user = await api.me();
+                // Users with no role at all can sign in but can't list org units.
+                const orgUnits = user.access.canRead ? await api.getOrgUnits() : [];
+                if (!cancelled) setState({ status: 'signedIn', session: { user, orgUnits } });
+            } catch {
+                if (!cancelled) setState({ status: 'signedOut' });
+            }
+        })();
         return () => { cancelled = true; };
     }, []);
 
@@ -25,8 +31,8 @@ export default function RequireAuth() {
         return <Navigate to={`/login?returnUrl=${returnUrl}`} replace />;
     }
     return (
-        <CurrentUserContext.Provider value={state.user}>
+        <SessionContext.Provider value={state.session}>
             <Outlet />
-        </CurrentUserContext.Provider>
+        </SessionContext.Provider>
     );
 }

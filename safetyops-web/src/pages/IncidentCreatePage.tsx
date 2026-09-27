@@ -7,11 +7,14 @@ import IncidentForm from '../components/IncidentForm';
 import PageLayout from '../components/PageLayout';
 import { styles } from '../styles/theme';
 import { nowForInput } from './incidentFormat';
+import { useAccess } from '../auth/currentUser';
 
 export default function IncidentCreatePage() {
     const navigate = useNavigate();
     const [errors, setErrors] = useState<string[]>([]);
+    const access = useAccess();
     const [initial] = useState<IncidentInput>(() => ({
+        orgUnitId: access.writableUnits[0]?.id ?? 0,
         occurredAt: nowForInput(),
         location: '',
         category: 'NearMiss',

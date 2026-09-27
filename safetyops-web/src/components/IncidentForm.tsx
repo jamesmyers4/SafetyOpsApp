@@ -5,6 +5,8 @@ import {
     type IncidentInput, type PersonOption,
 } from '../types/api';
 import { styles } from '../styles/theme';
+import { useAccess } from '../auth/currentUser';
+import OrgUnitSelect from './OrgUnitSelect';
 
 interface IncidentFormProps {
     initial: IncidentInput;
@@ -23,6 +25,7 @@ export default function IncidentForm({ initial, showStatus, submitLabel, errors,
     const [form, setForm] = useState(initial);
     const [people, setPeople] = useState<PersonOption[]>([]);
     const [localErrors, setLocalErrors] = useState<string[]>([]);
+    const access = useAccess();
 
     useEffect(() => {
         api.lookupPeople().then(setPeople).catch(() => setPeople([]));
@@ -39,6 +42,7 @@ export default function IncidentForm({ initial, showStatus, submitLabel, errors,
         if (!form.location.trim()) errs.push('Location is required.');
         if (!form.description.trim()) errs.push('Description is required.');
         if (!form.reportedById) errs.push('Reported by is required.');
+        if (!form.orgUnitId) errs.push('Organization unit is required.');
         setLocalErrors(errs);
         if (errs.length === 0) onSubmit(form);
     }
@@ -57,6 +61,12 @@ export default function IncidentForm({ initial, showStatus, submitLabel, errors,
                 <label htmlFor="incident-occurred-at" style={styles.label}>Date and Time</label>
                 <input id="incident-occurred-at" type="datetime-local" value={form.occurredAt}
                     onChange={e => set('occurredAt', e.target.value)} style={styles.input} />
+            </div>
+
+            <div style={styles.field}>
+                <label htmlFor="incident-org-unit" style={styles.label}>Organization Unit</label>
+                <OrgUnitSelect id="incident-org-unit" units={access.writableUnits} value={form.orgUnitId || undefined}
+                    onChange={orgUnitId => set('orgUnitId', orgUnitId)} style={select} />
             </div>
 
             <div style={styles.field}>

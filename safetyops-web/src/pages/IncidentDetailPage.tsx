@@ -12,8 +12,9 @@ import LoadStatus from '../components/LoadStatus';
 import PageLayout from '../components/PageLayout';
 import { styles } from '../styles/theme';
 import { formatIncidentTime } from './incidentFormat';
+import { useAccess } from '../auth/currentUser';
 
-function toInput({ id: _id, reportedByName: _name, ...input }: Incident): IncidentInput {
+function toInput({ id: _id, reportedByName: _name, orgUnitName: _unit, ...input }: Incident): IncidentInput {
     return input;
 }
 
@@ -26,6 +27,7 @@ export default function IncidentDetailPage() {
     const [editing, setEditing] = useState(false);
     const [saveErrors, setSaveErrors] = useState<string[]>([]);
     const [message, setMessage] = useState('');
+    const access = useAccess();
 
     useEffect(() => {
         let cancelled = false;
@@ -76,12 +78,15 @@ export default function IncidentDetailPage() {
                         <p><strong>Category:</strong> {INCIDENT_CATEGORIES[incident.category]}</p>
                         <p><strong>Severity:</strong> {INCIDENT_SEVERITIES[incident.severity]}</p>
                         <p><strong>Reported By:</strong> {incident.reportedByName}</p>
+                        <p><strong>Org Unit:</strong> {incident.orgUnitName}</p>
                         <p style={{ whiteSpace: 'pre-wrap' }}><strong>Description:</strong> {incident.description}</p>
                     </div>
-                    <div style={styles.buttonRow}>
-                        <button onClick={() => { setEditing(true); setMessage(''); }} style={styles.primaryButton}>Edit</button>
-                        <ConfirmDelete label="Delete" prompt="Delete this incident?" onConfirm={handleDelete} />
-                    </div>
+                    {access.canWrite(incident.orgUnitId) && (
+                        <div style={styles.buttonRow}>
+                            <button onClick={() => { setEditing(true); setMessage(''); }} style={styles.primaryButton}>Edit</button>
+                            <ConfirmDelete label="Delete" prompt="Delete this incident?" onConfirm={handleDelete} />
+                        </div>
+                    )}
                 </>
             )}
         </PageLayout>

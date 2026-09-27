@@ -2,8 +2,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SafetyOps.Api.Features.MedicalSurveillance;
 
-/// <summary>A medical surveillance appointment. Stressors are identified by code (e.g. <c>STR-001</c>).</summary>
-public sealed record AppointmentDto(int Id, DateOnly Date, int PersonId, string PersonName, IReadOnlyList<AppointmentStressorDto> Stressors);
+/// <summary>
+/// A medical surveillance appointment. Stressors are identified by code (e.g. <c>STR-001</c>).
+/// The org unit is the person's; access to the appointment follows it.
+/// </summary>
+public sealed record AppointmentDto(int Id, DateOnly Date, int PersonId, string PersonName, IReadOnlyList<AppointmentStressorDto> Stressors, int OrgUnitId, string OrgUnitName);
 
 /// <summary>A stressor evaluated at an appointment and the exam type used.</summary>
 public sealed record AppointmentStressorDto(string StressorId, string StressorName, string ExamType);

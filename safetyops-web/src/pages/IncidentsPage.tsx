@@ -11,6 +11,7 @@ import PageLayout from '../components/PageLayout';
 import Pager from '../components/Pager';
 import { styles } from '../styles/theme';
 import { formatIncidentTime } from './incidentFormat';
+import { useAccess } from '../auth/currentUser';
 
 const PAGE_SIZE = 25;
 const filterSelect = { ...styles.input, width: '180px' };
@@ -22,6 +23,7 @@ export default function IncidentsPage() {
         { search: '', status: '', category: '', page: 1 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const access = useAccess();
 
     useEffect(() => {
         let cancelled = false;
@@ -40,9 +42,11 @@ export default function IncidentsPage() {
     return (
         <PageLayout section={{ label: 'Incident Reports', to: '/incidents' }}>
             <h2 style={{ ...styles.heading, marginBottom: '20px' }}>Incident Reports</h2>
-            <div style={styles.field}>
-                <NavLink to="/incidents/new" role="link" style={styles.buttonLink}>Create Incident</NavLink>
-            </div>
+            {access.canWriteAnywhere && (
+                <div style={styles.field}>
+                    <NavLink to="/incidents/new" role="link" style={styles.buttonLink}>Create Incident</NavLink>
+                </div>
+            )}
 
             <div style={{ ...styles.buttonRow, marginBottom: '20px' }}>
                 <input type="text" placeholder="Search location, description, or reporter..." aria-label="Search incidents"
@@ -73,6 +77,7 @@ export default function IncidentsPage() {
                                 <th style={styles.th}>Category</th>
                                 <th style={styles.th}>Severity</th>
                                 <th style={styles.th}>Location</th>
+                                <th style={styles.th}>Org Unit</th>
                                 <th style={styles.th}>Reported By</th>
                                 <th style={styles.th}>Status</th>
                             </tr>
@@ -85,6 +90,7 @@ export default function IncidentsPage() {
                                     <td style={styles.td}>{INCIDENT_CATEGORIES[i.category]}</td>
                                     <td style={styles.td}>{INCIDENT_SEVERITIES[i.severity]}</td>
                                     <td style={styles.td}>{i.location}</td>
+                                    <td style={styles.td}>{i.orgUnitName}</td>
                                     <td style={styles.td}>{i.reportedByName}</td>
                                     <td style={styles.td}>{INCIDENT_STATUSES[i.status]}</td>
                                 </tr>

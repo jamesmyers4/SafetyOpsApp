@@ -62,6 +62,7 @@ export default function MedicalEditPage() {
                             <th style={styles.th}>ID</th>
                             <th style={styles.th}>Person</th>
                             <th style={styles.th}>Date</th>
+                            <th style={styles.th}>Org Unit</th>
                             <th style={styles.th}>Action</th>
                         </tr>
                     </thead>
@@ -71,6 +72,7 @@ export default function MedicalEditPage() {
                                 <td style={styles.td}>{r.id}</td>
                                 <td style={styles.td}>{r.personName}</td>
                                 <td style={styles.td}>{r.date}</td>
+                                <td style={styles.td}>{r.orgUnitName}</td>
                                 <td style={styles.td}>
                                     <a href="#" onClick={e => { e.preventDefault(); selectRecord(r.id); }} style={styles.boldLink}>Edit</a>
                                 </td>

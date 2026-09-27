@@ -1,4 +1,5 @@
 // Choices offered by the Add User and Edit User forms.
+import type { PersonInput } from '../types/api';
 
 export const DEPARTMENTS = ['Engineering', 'Operations', 'Human Resources', 'Finance', 'Safety'];
 export const SUBSCRIPTIONS = ['Basic', 'Standard', 'Premium'];
@@ -13,7 +14,7 @@ export const PERSON_DIALOGS: Record<PersonDialog, { title: string; options: stri
     category: { title: 'Select an Employee Category', options: EMPLOYEE_CATEGORIES, field: 'employeeCategory' },
 };
 
-export const EMPTY_PERSON = {
+export const EMPTY_PERSON: PersonInput = {
     firstName: '', lastName: '', middleName: '', gender: '',
     department: '', employeeCategory: '', subscription: '', employeeNumber: '',
 };

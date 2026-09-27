@@ -8,6 +8,8 @@ import { errorMessage } from '../services/errors';
 import PageLayout from '../components/PageLayout';
 import SelectDialog from '../components/SelectDialog';
 import { styles } from '../styles/theme';
+import { useAccess } from '../auth/currentUser';
+import OrgUnitSelect from '../components/OrgUnitSelect';
 import { EMPTY_PERSON, PERSON_DIALOGS, type PersonDialog } from './personnelOptions';
 
 const pickerButton = { ...styles.smallButton, marginLeft: '10px' };
@@ -16,7 +18,9 @@ export default function EditUserFormPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [dialog, setDialog] = useState<PersonDialog | null>(null);
+    const access = useAccess();
     const [form, setForm] = useState<PersonInput>(EMPTY_PERSON);
+    const [ownerUnit, setOwnerUnit] = useState<number | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState('');
@@ -25,13 +29,13 @@ export default function EditUserFormPage() {
     useEffect(() => {
         let cancelled = false;
         api.getUser(Number(id))
-            .then(({ id: _id, ...person }) => { if (!cancelled) setForm(person); })
+            .then(({ id: _id, orgUnitName: _unit, ...person }) => { if (!cancelled) { setForm(person); setOwnerUnit(person.orgUnitId); } })
             .catch((e: unknown) => { if (!cancelled) setLoadError(errorMessage(e, 'Failed to load user')); })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
     }, [id]);
 
-    function setField(field: keyof PersonInput, value: string) {
+    function setField(field: Exclude<keyof PersonInput, 'orgUnitId'>, value: string) {
         setForm(prev => ({ ...prev, [field]: value }));
     }
 
@@ -50,11 +54,15 @@ export default function EditUserFormPage() {
     }
 
     const openDialog = dialog && PERSON_DIALOGS[dialog];
+    const canEdit = access.canWrite(ownerUnit);
 
     return (
         <PageLayout section={{ label: 'Personnel', to: '/personnel' }}>
             <h3 style={styles.heading}>Edit User</h3>
             <LoadStatus loading={loading} error={loadError} />
+            {!loading && !loadError && !canEdit && (
+                <div role="status" style={{ ...styles.alertWarning, marginBottom: '16px' }}>You have read-only access to this record.</div>
+            )}
 
             {errors.length > 0 && (
                 <div role="alert" style={styles.errorText}>
@@ -66,6 +74,12 @@ export default function EditUserFormPage() {
                     {successMsg}
                 </div>
             )}
+
+            <div style={styles.field}>
+                <label htmlFor="org-unit" style={styles.label}>Organization Unit</label>
+                <OrgUnitSelect id="org-unit" units={canEdit ? access.writableUnits : access.orgUnits} value={form.orgUnitId} disabled={!canEdit}
+                    onChange={orgUnitId => setForm(prev => ({ ...prev, orgUnitId }))} style={{ ...styles.input, width: '374px' }} />
+            </div>
 
             <div title="Select a Department" style={styles.field}>
                 <label style={styles.label}>Department</label>
@@ -111,7 +125,7 @@ export default function EditUserFormPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-                <button onClick={handleUpdate} disabled={loading || !!loadError} style={{ ...styles.primaryButton, padding: '12px 32px' }}>
+                <button onClick={handleUpdate} disabled={loading || !!loadError || !canEdit} style={{ ...styles.primaryButton, padding: '12px 32px' }}>
                     Update
                 </button>
                 <button onClick={() => navigate('/personnel/edit')} style={{ ...styles.secondaryButton, padding: '12px 32px' }}>

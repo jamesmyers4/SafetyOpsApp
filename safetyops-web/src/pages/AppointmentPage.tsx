@@ -7,6 +7,7 @@ import ConfirmDelete from '../components/ConfirmDelete';
 import LoadStatus from '../components/LoadStatus';
 import PageLayout from '../components/PageLayout';
 import { styles } from '../styles/theme';
+import { useAccess } from '../auth/currentUser';
 
 /** Landing page after an appointment is created. */
 export default function AppointmentPage() {
@@ -15,6 +16,7 @@ export default function AppointmentPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [deleted, setDeleted] = useState(false);
+    const access = useAccess();
 
     useEffect(() => {
         let cancelled = false;
@@ -48,6 +50,7 @@ export default function AppointmentPage() {
                         <p><strong>ID:</strong> {appt.id}</p>
                         <p><strong>Date:</strong> {appt.date}</p>
                         <p><strong>Person Evaluated:</strong> {appt.personName}</p>
+                        <p><strong>Org Unit:</strong> {appt.orgUnitName}</p>
                         {appt.stressors.length > 0 && (
                             <>
                                 <p><strong>Stressors:</strong></p>
@@ -57,7 +60,9 @@ export default function AppointmentPage() {
                             </>
                         )}
                     </div>
-                    <ConfirmDelete label="Delete Appointment" prompt="Confirm deletion?" onConfirm={handleDelete} />
+                    {access.canWrite(appt.orgUnitId) && (
+                        <ConfirmDelete label="Delete Appointment" prompt="Confirm deletion?" onConfirm={handleDelete} />
+                    )}
                 </>
             )}
         </PageLayout>
