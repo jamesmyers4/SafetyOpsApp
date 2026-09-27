@@ -142,6 +142,11 @@ public class AuthApiTests : ApiTestBase
         yield return new TestCaseData("POST", "/api/incidents");
         yield return new TestCaseData("PUT", "/api/incidents/1");
         yield return new TestCaseData("DELETE", "/api/incidents/1");
+        yield return new TestCaseData("GET", "/api/access/org-units");
+        yield return new TestCaseData("GET", "/api/access/assignments");
+        yield return new TestCaseData("GET", "/api/access/users");
+        yield return new TestCaseData("POST", "/api/access/assignments");
+        yield return new TestCaseData("DELETE", "/api/access/assignments/1");
     }
 
     [TestCaseSource(nameof(ProtectedEndpoints))]

@@ -15,6 +15,10 @@ public class Incident
     public int ReportedById { get; set; }
     public Person ReportedBy { get; set; } = null!;
     public IncidentStatus Status { get; set; } = IncidentStatus.Open;
+
+    /// <summary>Owning org unit; access to this record follows roles on that unit and its ancestors.</summary>
+    public int OrgUnitId { get; set; }
+    public OrgUnit OrgUnit { get; set; } = null!;
 }
 
 public enum IncidentCategory

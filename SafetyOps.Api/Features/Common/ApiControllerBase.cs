@@ -6,7 +6,7 @@ namespace SafetyOps.Api.Features.Common;
 public abstract class ApiControllerBase : ControllerBase
 {
     /// <summary>
-    /// Maps a service <see cref="ServiceError"/> to RFC 9457 problem details: 404 and 409 as
+    /// Maps a service <see cref="ServiceError"/> to RFC 9457 problem details: 404, 403, and 409 as
     /// <see cref="ProblemDetails"/>, invalid input as <see cref="ValidationProblemDetails"/>.
     /// </summary>
     protected ActionResult Failure(ServiceError error)
@@ -17,6 +17,8 @@ public abstract class ApiControllerBase : ControllerBase
                 return Problem(detail: error.Message, statusCode: StatusCodes.Status404NotFound);
             case ErrorKind.Conflict:
                 return Problem(detail: error.Message, statusCode: StatusCodes.Status409Conflict);
+            case ErrorKind.Forbidden:
+                return Problem(detail: error.Message, statusCode: StatusCodes.Status403Forbidden);
             default:
                 ModelState.AddModelError(error.Field ?? string.Empty, error.Message);
                 return ValidationProblem(ModelState);

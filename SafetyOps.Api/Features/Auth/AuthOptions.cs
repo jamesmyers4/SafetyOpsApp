@@ -18,4 +18,10 @@ public sealed class DemoUserOptions
     public string UserName { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>Optional role to grant (Viewer, Manager, Admin) on <see cref="OrgUnit"/>.</summary>
+    public Domain.Role? Role { get; set; }
+
+    /// <summary>Code of the org unit for <see cref="Role"/>, e.g. <c>ORG</c> or <c>MFG-N</c>.</summary>
+    public string? OrgUnit { get; set; }
 }

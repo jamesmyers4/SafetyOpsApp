@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SafetyOps.Api.Features.Access;
 using SafetyOps.Api.Features.Common;
 
 namespace SafetyOps.Api.Features.Incidents;
 
 /// <summary>Workplace incident reports.</summary>
 [Route("api/incidents")]
+[Authorize(Policy = AccessPolicies.Read)]
 public class IncidentsController(IIncidentService incidents) : ApiControllerBase
 {
     /// <summary>Lists incidents, most recent first. Search matches location, description, and reporter; status and category filter exactly.</summary>
@@ -23,6 +26,8 @@ public class IncidentsController(IIncidentService incidents) : ApiControllerBase
 
     /// <summary>Reports an incident. Status defaults to Open.</summary>
     [HttpPost]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<IncidentDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IncidentDto>> Create(IncidentRequest request, CancellationToken ct)
@@ -35,6 +40,8 @@ public class IncidentsController(IIncidentService incidents) : ApiControllerBase
 
     /// <summary>Replaces an incident's details. Omitting status keeps the current one.</summary>
     [HttpPut("{id:int}")]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<IncidentDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -43,6 +50,8 @@ public class IncidentsController(IIncidentService incidents) : ApiControllerBase
 
     /// <summary>Deletes an incident.</summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Delete(int id, CancellationToken ct) =>

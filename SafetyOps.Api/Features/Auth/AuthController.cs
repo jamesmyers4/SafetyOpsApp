@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SafetyOps.Api.Features.Access;
 using SafetyOps.Api.Features.Common;
 
 namespace SafetyOps.Api.Features.Auth;
 
 /// <summary>Cookie sign-in for the SPA.</summary>
 [Route("api/auth")]
-public class AuthController(IAuthService auth) : ApiControllerBase
+public class AuthController(IAuthService auth, IAccessService access) : ApiControllerBase
 {
     /// <summary>Signs in and sets the HttpOnly auth cookie.</summary>
     [HttpPost("login")]
@@ -22,8 +23,10 @@ public class AuthController(IAuthService auth) : ApiControllerBase
         if (user is null)
             return Problem(detail: "Invalid username or password.", statusCode: StatusCodes.Status401Unauthorized);
 
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, AuthService.CreatePrincipal(user));
-        return new CurrentUserDto(user.Id, user.UserName, user.DisplayName);
+        var principal = AuthService.CreatePrincipal(user);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+        HttpContext.User = principal; // so the access summary below is computed for the new session
+        return new CurrentUserDto(user.Id, user.UserName, user.DisplayName, await access.GetSummaryAsync(user.Id, ct));
     }
 
     /// <summary>Signs out and clears the auth cookie.</summary>
@@ -43,7 +46,7 @@ public class AuthController(IAuthService auth) : ApiControllerBase
     public async Task<ActionResult<CurrentUserDto>> Me(CancellationToken ct)
     {
         if (AuthService.GetUserId(User) is { } id && await auth.GetUserAsync(id, ct) is { } user)
-            return user;
+            return new CurrentUserDto(user.Id, user.UserName, user.DisplayName, await access.GetSummaryAsync(user.Id, ct));
 
         // The cookie is valid but the account is gone.
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

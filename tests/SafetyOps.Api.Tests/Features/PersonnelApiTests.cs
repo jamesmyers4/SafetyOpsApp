@@ -85,7 +85,7 @@ public class PersonnelApiTests : ApiTestBase
 
         var dto = await Client.GetFromJsonAsync<PersonDto>($"/api/personnel/{person.Id}", Json);
 
-        Assert.That(dto, Is.EqualTo(new PersonDto(person.Id, "Jane", "Doe", "", "", "Safety", "", "", "")));
+        Assert.That(dto, Is.EqualTo(new PersonDto(person.Id, "Jane", "Doe", "", "", "Safety", "", "", "", 1, "SafetyOps Industries")));
     }
 
     [Test]
@@ -105,7 +105,7 @@ public class PersonnelApiTests : ApiTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var created = await ReadAsync<PersonDto>(response);
         Assert.That(response.Headers.Location?.AbsolutePath, Is.EqualTo($"/api/personnel/{created.Id}"));
-        Assert.That(created with { Id = 0 }, Is.EqualTo(new PersonDto(0, "Pat", "Example", "Q", "Female", "Safety", "Full Time", "Basic", "1234567")));
+        Assert.That(created with { Id = 0 }, Is.EqualTo(new PersonDto(0, "Pat", "Example", "Q", "Female", "Safety", "Full Time", "Basic", "1234567", 1, "SafetyOps Industries")));
 
         var fetched = await Client.GetFromJsonAsync<PersonDto>(response.Headers.Location, Json);
         Assert.That(fetched, Is.EqualTo(created));

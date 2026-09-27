@@ -22,5 +22,8 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
 
         builder.HasIndex(i => i.OccurredAt);
         builder.HasIndex(i => i.Status);
+
+        builder.Property(x => x.OrgUnitId).HasDefaultValue(OrgUnit.RootId);
+        builder.HasOne(x => x.OrgUnit).WithMany().HasForeignKey(x => x.OrgUnitId).OnDelete(DeleteBehavior.Restrict);
     }
 }

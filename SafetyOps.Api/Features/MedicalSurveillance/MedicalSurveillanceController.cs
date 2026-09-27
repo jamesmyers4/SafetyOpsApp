@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SafetyOps.Api.Features.Access;
 using SafetyOps.Api.Features.Common;
 using SafetyOps.Api.Features.Personnel;
 
@@ -6,6 +8,7 @@ namespace SafetyOps.Api.Features.MedicalSurveillance;
 
 /// <summary>Medical surveillance appointments and their lookups.</summary>
 [Route("api/medical-surveillance")]
+[Authorize(Policy = AccessPolicies.Read)]
 public class MedicalSurveillanceController(IMedicalSurveillanceService medical) : ApiControllerBase
 {
     /// <summary>Lists appointments, newest first. Search matches the person's name, an exact date, or an id.</summary>
@@ -24,6 +27,8 @@ public class MedicalSurveillanceController(IMedicalSurveillanceService medical) 
 
     /// <summary>Creates an appointment.</summary>
     [HttpPost("appointments")]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<AppointmentDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AppointmentDto>> CreateAppointment(AppointmentRequest request, CancellationToken ct)
@@ -36,6 +41,8 @@ public class MedicalSurveillanceController(IMedicalSurveillanceService medical) 
 
     /// <summary>Replaces an appointment's date, person, and stressors.</summary>
     [HttpPut("appointments/{id:int}")]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<AppointmentDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -44,6 +51,8 @@ public class MedicalSurveillanceController(IMedicalSurveillanceService medical) 
 
     /// <summary>Deletes an appointment.</summary>
     [HttpDelete("appointments/{id:int}")]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeleteAppointment(int id, CancellationToken ct) =>

@@ -5,6 +5,7 @@ public enum ErrorKind
     NotFound,
     Invalid,
     Conflict,
+    Forbidden,
 }
 
 /// <summary>An expected failure a service reports instead of throwing. Controllers turn it into an HTTP response.</summary>
@@ -13,6 +14,7 @@ public sealed record ServiceError(ErrorKind Kind, string Message, string? Field 
     public static ServiceError NotFound(string message) => new(ErrorKind.NotFound, message);
     public static ServiceError Invalid(string field, string message) => new(ErrorKind.Invalid, message, field);
     public static ServiceError Conflict(string message) => new(ErrorKind.Conflict, message);
+    public static ServiceError Forbidden(string message) => new(ErrorKind.Forbidden, message);
 }
 
 /// <summary>Either a value or an <see cref="ServiceError"/>.</summary>

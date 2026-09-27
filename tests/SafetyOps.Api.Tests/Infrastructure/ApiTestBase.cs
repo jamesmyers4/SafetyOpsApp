@@ -68,13 +68,13 @@ public abstract class ApiTestBase
         return entities;
     }
 
-    protected async Task<TrainingClass> SeedClassAsync(string courseCode, DateOnly date, string location)
+    protected async Task<TrainingClass> SeedClassAsync(string courseCode, DateOnly date, string location, int orgUnitId = OrgUnit.RootId)
     {
         TrainingClass cls = null!;
         await Factory.WithDbAsync(async db =>
         {
             var course = db.Courses.Single(c => c.Code == courseCode);
-            cls = new TrainingClass { CourseId = course.Id, ClassDate = date, Location = location };
+            cls = new TrainingClass { CourseId = course.Id, ClassDate = date, Location = location, OrgUnitId = orgUnitId };
             db.TrainingClasses.Add(cls);
             await db.SaveChangesAsync();
         });

@@ -13,6 +13,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MedicalAppointment> MedicalAppointments => Set<MedicalAppointment>();
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<Incident> Incidents => Set<Incident>();
+    public DbSet<OrgUnit> OrgUnits => Set<OrgUnit>();
+    public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

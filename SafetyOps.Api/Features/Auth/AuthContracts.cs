@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SafetyOps.Api.Features.Access;
 
 namespace SafetyOps.Api.Features.Auth;
 
@@ -12,5 +13,5 @@ public sealed record LoginRequest
     public string Password { get; init; } = string.Empty;
 }
 
-/// <summary>The signed-in user.</summary>
-public sealed record CurrentUserDto(int Id, string UserName, string DisplayName);
+/// <summary>The signed-in user and what they may do.</summary>
+public sealed record CurrentUserDto(int Id, string UserName, string DisplayName, AccessSummaryDto Access);

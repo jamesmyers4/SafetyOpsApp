@@ -22,8 +22,8 @@ public class TrainingApiTests : ApiTestBase
 
         Assert.That(page!.Items, Is.EqualTo(new[]
         {
-            new TrainingClassDto(newer.Id, "First Aid and CPR", "FAC-001", Today.AddDays(-20), "Room B"),
-            new TrainingClassDto(older.Id, "Electrical - Low Voltage", "ELV-001", Today.AddDays(-10), "Room A"),
+            new TrainingClassDto(newer.Id, "First Aid and CPR", "FAC-001", Today.AddDays(-20), "Room B", 1, "SafetyOps Industries"),
+            new TrainingClassDto(older.Id, "Electrical - Low Voltage", "ELV-001", Today.AddDays(-10), "Room A", 1, "SafetyOps Industries"),
         }));
     }
 
@@ -56,7 +56,7 @@ public class TrainingApiTests : ApiTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         var created = await ReadAsync<TrainingClassDto>(response);
         Assert.That(response.Headers.Location?.AbsolutePath, Is.EqualTo($"/api/training/classes/{created.Id}"));
-        Assert.That(created with { Id = 0 }, Is.EqualTo(new TrainingClassDto(0, "Personal Protective Equipment", "PPE-001", new DateOnly(2026, 6, 1), "Building 1 Room 2")));
+        Assert.That(created with { Id = 0 }, Is.EqualTo(new TrainingClassDto(0, "Personal Protective Equipment", "PPE-001", new DateOnly(2026, 6, 1), "Building 1 Room 2", 1, "SafetyOps Industries")));
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("\"classDate\":\"2026-06-01\""));
     }
 
@@ -114,7 +114,7 @@ public class TrainingApiTests : ApiTestBase
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var fetched = await Client.GetFromJsonAsync<TrainingClassDto>($"/api/training/classes/{cls.Id}", Json);
-        Assert.That(fetched, Is.EqualTo(new TrainingClassDto(cls.Id, "Lockout/Tagout Procedures", "LOT-001", new DateOnly(2026, 5, 5), "Room Z")));
+        Assert.That(fetched, Is.EqualTo(new TrainingClassDto(cls.Id, "Lockout/Tagout Procedures", "LOT-001", new DateOnly(2026, 5, 5), "Room Z", 1, "SafetyOps Industries")));
     }
 
     [Test]

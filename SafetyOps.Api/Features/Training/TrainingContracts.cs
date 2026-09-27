@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace SafetyOps.Api.Features.Training;
 
 /// <summary>A training class. <c>CourseId</c> is the course code (e.g. <c>ELV-001</c>).</summary>
-public sealed record TrainingClassDto(int Id, string CourseTitle, string CourseId, DateOnly ClassDate, string Location);
+public sealed record TrainingClassDto(int Id, string CourseTitle, string CourseId, DateOnly ClassDate, string Location, int OrgUnitId, string OrgUnitName);
 
 /// <summary>Create/update body. The course is identified by its code.</summary>
 public sealed record TrainingClassRequest
@@ -18,6 +18,10 @@ public sealed record TrainingClassRequest
 
     [Required(AllowEmptyStrings = false), StringLength(200)]
     public string Location { get; init; } = string.Empty;
+
+    /// <summary>Org unit running the class. On create defaults to the highest unit you can write to; on update to the current one.</summary>
+    [Range(1, int.MaxValue)]
+    public int? OrgUnitId { get; init; }
 }
 
 /// <summary>A course in the training catalog.</summary>

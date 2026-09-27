@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SafetyOps.Api.Features.Access;
 using SafetyOps.Api.Features.Common;
 
 namespace SafetyOps.Api.Features.Training;
 
 /// <summary>Training classes and the course catalog.</summary>
 [Route("api/training")]
+[Authorize(Policy = AccessPolicies.Read)]
 public class TrainingController(ITrainingService training) : ApiControllerBase
 {
     /// <summary>Lists classes, newest first. Search matches course title and location.</summary>
@@ -23,6 +26,8 @@ public class TrainingController(ITrainingService training) : ApiControllerBase
 
     /// <summary>Creates a class.</summary>
     [HttpPost("classes")]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<TrainingClassDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TrainingClassDto>> CreateClass(TrainingClassRequest request, CancellationToken ct)
@@ -35,6 +40,8 @@ public class TrainingController(ITrainingService training) : ApiControllerBase
 
     /// <summary>Replaces a class's details.</summary>
     [HttpPut("classes/{id:int}")]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<TrainingClassDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -43,6 +50,8 @@ public class TrainingController(ITrainingService training) : ApiControllerBase
 
     /// <summary>Deletes a class.</summary>
     [HttpDelete("classes/{id:int}")]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeleteClass(int id, CancellationToken ct) =>

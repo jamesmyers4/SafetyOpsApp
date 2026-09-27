@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SafetyOps.Api.Data;
 using SafetyOps.Api.Domain;
+using SafetyOps.Api.Features.Access;
 using SafetyOps.Api.Features.Auth;
 using SafetyOps.Api.Features.Common;
 using SafetyOps.Api.Features.Incidents;
@@ -34,6 +35,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(ResolveSqliteConnectionString(builder.Configuration, builder.Environment)));
 builder.Services.AddSafetyOpsAuth(builder.Configuration);
+builder.Services.AddSafetyOpsAccess();
 builder.Services.AddScoped<IPersonnelService, PersonnelService>();
 builder.Services.AddScoped<ITrainingService, TrainingService>();
 builder.Services.AddScoped<IMedicalSurveillanceService, MedicalSurveillanceService>();

@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SafetyOps.Api.Features.Access;
 using SafetyOps.Api.Features.Common;
 
 namespace SafetyOps.Api.Features.Personnel;
 
-/// <summary>Personnel records.</summary>
+/// <summary>Personnel records, scoped to the caller's org units.</summary>
 [Route("api/personnel")]
+[Authorize(Policy = AccessPolicies.Read)]
 public class PersonnelController(IPersonnelService personnel) : ApiControllerBase
 {
     /// <summary>Lists personnel, sorted by last then first name. Search matches first, middle, and last name and department.</summary>
@@ -25,10 +28,12 @@ public class PersonnelController(IPersonnelService personnel) : ApiControllerBas
     [ProducesResponseType<PersonDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PersonDto>> Get(int id, CancellationToken ct) =>
-        await personnel.GetAsync(id, ct) is { } person ? person : Failure(ServiceError.NotFound("Person not found."));
+        await personnel.GetAsync(id, ct) is { } person ? person : Failure(PersonnelService.NotFound);
 
     /// <summary>Creates a person.</summary>
     [HttpPost]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<PersonDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PersonDto>> Create(PersonRequest request, CancellationToken ct)
@@ -41,6 +46,8 @@ public class PersonnelController(IPersonnelService personnel) : ApiControllerBas
 
     /// <summary>Replaces a person's details.</summary>
     [HttpPut("{id:int}")]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<PersonDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -49,6 +56,8 @@ public class PersonnelController(IPersonnelService personnel) : ApiControllerBas
 
     /// <summary>Deletes a person. Fails with 409 if the person has medical surveillance appointments.</summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = AccessPolicies.Write)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
