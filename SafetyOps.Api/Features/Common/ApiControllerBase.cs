@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace SafetyOps.Api.Features.Common;
 
 [ApiController]
-[Produces("application/json")]
 public abstract class ApiControllerBase : ControllerBase
 {
     /// <summary>

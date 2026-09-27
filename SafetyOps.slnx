@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/SafetyOps.Api.Tests/SafetyOps.Api.Tests.csproj" />
+  </Folder>
   <Project Path="safetyops-web/safetyops-web.esproj" />
   <Project Path="SafetyOps.Api/SafetyOps.Api.csproj" />
 </Solution>

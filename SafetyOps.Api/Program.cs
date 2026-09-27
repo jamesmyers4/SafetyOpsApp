@@ -78,3 +78,6 @@ static string ResolveSqliteConnectionString(IConfiguration configuration, IWebHo
     }
     return csb.ToString();
 }
+
+/// <summary>Entry point; public so integration tests can host the app with <c>WebApplicationFactory</c>.</summary>
+public partial class Program;
