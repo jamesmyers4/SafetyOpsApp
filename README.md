@@ -56,6 +56,10 @@ Every endpoint except sign-in requires the auth cookie and returns `401` (never 
 | GET / PUT | `/api/incidents/{id}` | 200 |
 | DELETE | `/api/incidents/{id}` | 204 |
 | GET | `/api/personnel/lookup` | 200 (id/name options) |
+| GET | `/api/access/org-units` | 200 (units you can see, with your role) |
+| GET / POST | `/api/access/assignments` | 200 / 201 (Admin) |
+| DELETE | `/api/access/assignments/{id}` | 204 (Admin; not your own) |
+| GET | `/api/access/users` | 200 (Admin) |
 
 ## Getting started
 
@@ -71,9 +75,21 @@ npm install
 npm run dev
 ```
 
-Open <https://localhost:14418> and sign in with the demo account `admin` / `admin`. The demo account comes from `Auth:DemoUsers` in `appsettings.Development.json` and is stored with a hashed password on first run; other environments supply accounts through configuration (environment variables or user secrets).
+Open <https://localhost:14418> and sign in with one of the demo accounts:
+
+| User | Password | Role | Sees |
+| ---- | -------- | ---- | ---- |
+| `admin` | `admin` | Admin on the whole organization | Everything; can grant and revoke roles |
+| `manager` | `manager` | Manager on Manufacturing Division | Manufacturing, North Plant, and South Plant records; can create, edit, delete |
+| `viewer` | `viewer` | Viewer on North Plant | North Plant records, read-only |
+
+The demo accounts come from `Auth:DemoUsers` in `appsettings.Development.json` and are stored with hashed passwords on first run; other environments supply accounts through configuration (environment variables or user secrets).
 
 In Visual Studio, open `SafetyOps.slnx` and run `SafetyOps.Api`; the SPA proxy starts the Vite dev server for you.
+
+## Access control
+
+Records (people, training classes, incidents) belong to a unit in an organization tree: the organization, two divisions, and two sites under each. Appointments belong to the unit of the person evaluated. A role (Viewer, Manager, Admin) is granted on a unit and applies to that unit and everything below it. The API enforces this on every endpoint: records outside your units return `404`, read-only records return `403` on change, and Admins manage roles on the **Access Levels** page (`/api/access/*`). Permissions are looked up on each request, so a grant or revoke applies immediately.
 
 ## License
 

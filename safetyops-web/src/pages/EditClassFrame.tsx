@@ -7,6 +7,8 @@ import CalendarPicker, { CalendarBackdrop } from '../components/CalendarPicker';
 import LoadStatus from '../components/LoadStatus';
 import { colors, styles } from '../styles/theme';
 import { validateClassForm } from './classValidation';
+import { useAccess } from '../auth/currentUser';
+import OrgUnitSelect from '../components/OrgUnitSelect';
 
 /** Runs inside the Training shell's iframe: search for a class, then edit it. */
 export default function EditClassFrame() {
@@ -21,6 +23,8 @@ export default function EditClassFrame() {
     const [showCalendar, setShowCalendar] = useState(false);
     const [errors, setErrors] = useState<string[]>([]);
     const [showDuplicate, setShowDuplicate] = useState(false);
+    const [orgUnitId, setOrgUnitId] = useState<number | undefined>(undefined);
+    const access = useAccess();
 
     useAppMessages(message => {
         if (message.type === 'courseSelected') {
@@ -35,6 +39,7 @@ export default function EditClassFrame() {
         setCourseId(cls.courseId);
         setClassDate(cls.classDate);
         setLocation(cls.location);
+        setOrgUnitId(cls.orgUnitId);
         setErrors([]);
         setShowDuplicate(false);
     }
@@ -49,7 +54,7 @@ export default function EditClassFrame() {
     function postReadyToSave() {
         postToParent({
             type: 'trainingReadyToSave',
-            data: { id: editClass?.id, courseTitle, courseId, classDate, location },
+            data: { id: editClass?.id, courseTitle, courseId, classDate, location, orgUnitId },
             isUpdate: true,
         });
     }
@@ -71,6 +76,8 @@ export default function EditClassFrame() {
     function openCoursePicker() {
         window.open('/training/course-picker', 'coursePicker', 'width=640,height=480,resizable=yes');
     }
+
+    const canEdit = access.canWrite(editClass?.orgUnitId);
 
     if (!editClass) {
         const results = search.results;
@@ -96,6 +103,7 @@ export default function EditClassFrame() {
                                 <th style={styles.compactTh}>Course</th>
                                 <th style={styles.compactTh}>Date</th>
                                 <th style={styles.compactTh}>Location</th>
+                                <th style={styles.compactTh}>Org Unit</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -108,6 +116,7 @@ export default function EditClassFrame() {
                                     </td>
                                     <td style={styles.compactTd}>{cls.classDate}</td>
                                     <td style={styles.compactTd}>{cls.location}</td>
+                                    <td style={styles.compactTd}>{cls.orgUnitName}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -120,6 +129,7 @@ export default function EditClassFrame() {
     return (
         <div style={styles.frame}>
             <h3 style={styles.frameHeading}>Edit Training Class</h3>
+            {!canEdit && <div role="status" style={{ ...styles.alertWarning, marginBottom: '12px' }}>You have read-only access to this class.</div>}
 
             {errors.length > 0 && (
                 <div role="alert" style={{ ...styles.errorText, marginBottom: '12px' }}>
@@ -132,6 +142,12 @@ export default function EditClassFrame() {
                 <input id="class-date" value={classDate} onChange={e => setClassDate(e.target.value)} onClick={() => setShowCalendar(true)}
                     placeholder="MM/DD/YYYY" style={{ ...styles.frameInput, width: '200px' }} />
                 {showCalendar && <CalendarPicker onSelect={setClassDate} onClose={() => setShowCalendar(false)} />}
+            </div>
+
+            <div style={styles.frameField}>
+                <label htmlFor="class-org-unit" style={styles.frameLabel}>Organization Unit</label>
+                <OrgUnitSelect id="class-org-unit" units={canEdit ? access.writableUnits : access.orgUnits} value={orgUnitId}
+                    onChange={setOrgUnitId} disabled={!canEdit} style={{ ...styles.frameInput, width: '366px' }} />
             </div>
 
             <div style={styles.frameField}>
@@ -149,7 +165,7 @@ export default function EditClassFrame() {
             </div>
 
             <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-                <button onClick={handleUpdate} style={styles.primaryButton}>Update</button>
+                {canEdit && <button onClick={handleUpdate} style={styles.primaryButton}>Update</button>}
                 <button onClick={closeEditor} style={styles.secondaryButton}>Cancel</button>
             </div>
 

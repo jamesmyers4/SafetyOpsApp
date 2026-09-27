@@ -7,6 +7,7 @@ import NavLink from '../components/NavLink';
 import PageLayout from '../components/PageLayout';
 import Pager from '../components/Pager';
 import { styles } from '../styles/theme';
+import { useAccess } from '../auth/currentUser';
 
 const PAGE_SIZE = 25;
 
@@ -18,6 +19,7 @@ export default function PersonnelHomePage() {
     const [reloadKey, setReloadKey] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const access = useAccess();
 
     useEffect(() => {
         let cancelled = false;
@@ -55,7 +57,7 @@ export default function PersonnelHomePage() {
         <PageLayout section={{ label: 'Personnel', to: '/personnel' }}>
             <h2 style={styles.heading}>Personnel</h2>
             <div style={{ ...styles.buttonRow, marginBottom: '20px' }}>
-                <NavLink to="/personnel/create" role="link" style={styles.buttonLink}>Add New User</NavLink>
+                {access.canWriteAnywhere && <NavLink to="/personnel/create" role="link" style={styles.buttonLink}>Add New User</NavLink>}
                 <NavLink to="/personnel/edit" role="link" style={styles.buttonLink}>Edit/Search User</NavLink>
                 <NavLink to="/personnel/access-levels" role="link" style={styles.buttonLink}>Access Levels</NavLink>
             </div>
@@ -73,6 +75,7 @@ export default function PersonnelHomePage() {
                         <th style={styles.th}>Name</th>
                         <th style={styles.th}>Department</th>
                         <th style={styles.th}>Category</th>
+                        <th style={styles.th}>Org Unit</th>
                         <th style={styles.th}>Actions</th>
                     </tr>
                 </thead>
@@ -82,8 +85,11 @@ export default function PersonnelHomePage() {
                             <td style={styles.td}>{user.firstName} {user.lastName}</td>
                             <td style={styles.td}>{user.department}</td>
                             <td style={styles.td}>{user.employeeCategory}</td>
+                            <td style={styles.td}>{user.orgUnitName}</td>
                             <td style={styles.td}>
-                                <button onClick={() => handleDelete(user)} style={styles.smallDangerButton}>Delete</button>
+                                {access.canWrite(user.orgUnitId) && (
+                                    <button onClick={() => handleDelete(user)} style={styles.smallDangerButton}>Delete</button>
+                                )}
                             </td>
                         </tr>
                     ))}

@@ -7,6 +7,7 @@ import ConfirmDelete from '../components/ConfirmDelete';
 import LoadStatus from '../components/LoadStatus';
 import PageLayout from '../components/PageLayout';
 import { styles } from '../styles/theme';
+import { useAccess } from '../auth/currentUser';
 
 /** Landing page after a class is created from the Training shell. */
 export default function ClassDetailPage() {
@@ -15,6 +16,7 @@ export default function ClassDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [deleted, setDeleted] = useState(false);
+    const access = useAccess();
 
     useEffect(() => {
         let cancelled = false;
@@ -52,8 +54,9 @@ export default function ClassDetailPage() {
                         <p><strong>Course:</strong> {cls.courseTitle} ({cls.courseId})</p>
                         <p><strong>Date:</strong> {cls.classDate}</p>
                         <p><strong>Location:</strong> {cls.location}</p>
+                        <p><strong>Org Unit:</strong> {cls.orgUnitName}</p>
                     </div>
-                    <ConfirmDelete label="Delete" prompt="Are you sure?" onConfirm={handleDelete} />
+                    {access.canWrite(cls.orgUnitId) && <ConfirmDelete label="Delete" prompt="Are you sure?" onConfirm={handleDelete} />}
                 </>
             )}
         </PageLayout>

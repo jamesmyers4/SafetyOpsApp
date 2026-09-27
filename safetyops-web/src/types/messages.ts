@@ -6,6 +6,7 @@ export interface ClassDraft {
     courseId: string;
     classDate: string;
     location: string;
+    orgUnitId?: number;
 }
 
 export interface SelectedStressor {

@@ -4,6 +4,8 @@ import { postToParent, useAppMessages } from '../services/messaging';
 import CalendarPicker, { CalendarBackdrop } from '../components/CalendarPicker';
 import { colors, styles } from '../styles/theme';
 import { validateClassForm } from './classValidation';
+import { useAccess } from '../auth/currentUser';
+import OrgUnitSelect from '../components/OrgUnitSelect';
 
 /** Runs inside the Training shell's iframe. The course comes from a picker popup window. */
 export default function CreateClassFrame() {
@@ -14,6 +16,8 @@ export default function CreateClassFrame() {
     const [showCalendar, setShowCalendar] = useState(false);
     const [duplicateIds, setDuplicateIds] = useState<number[]>([]);
     const [errors, setErrors] = useState<string[]>([]);
+    const access = useAccess();
+    const [orgUnitId, setOrgUnitId] = useState<number | undefined>(access.writableUnits[0]?.id);
 
     useAppMessages(message => {
         if (message.type === 'courseSelected') {
@@ -23,7 +27,7 @@ export default function CreateClassFrame() {
     });
 
     function readyToSave() {
-        postToParent({ type: 'trainingReadyToSave', data: { courseTitle, courseId, classDate: date, location } });
+        postToParent({ type: 'trainingReadyToSave', data: { courseTitle, courseId, classDate: date, location, orgUnitId } });
     }
 
     async function handleCreate() {
@@ -83,6 +87,12 @@ export default function CreateClassFrame() {
                 <input id="class-date" value={date} onChange={e => setDate(e.target.value)} onClick={() => setShowCalendar(true)}
                     placeholder="MM/DD/YYYY" style={{ ...styles.frameInput, width: '200px' }} />
                 {showCalendar && <CalendarPicker onSelect={setDate} onClose={() => setShowCalendar(false)} />}
+            </div>
+
+            <div style={styles.frameField}>
+                <label htmlFor="class-org-unit" style={styles.frameLabel}>Organization Unit</label>
+                <OrgUnitSelect id="class-org-unit" units={access.writableUnits} value={orgUnitId} onChange={setOrgUnitId}
+                    style={{ ...styles.frameInput, width: '366px' }} />
             </div>
 
             <div style={styles.frameField}>

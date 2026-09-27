@@ -62,7 +62,7 @@ export default function NavBar({ extra }: NavBarProps) {
                 {extra}
                 {user && (
                     <div style={{ marginLeft: 'auto', display: 'flex', gap: '16px', alignItems: 'center', fontSize: '14px', fontWeight: 'normal' }}>
-                        <span aria-label="Signed in user">{user.displayName}</span>
+                        <span aria-label="Signed in user" title={user.access.grants.map(g => g.role + " on " + g.orgUnitName).join(", ") || "No roles"}>{user.displayName}</span>
                         <a href="#" onClick={e => { e.preventDefault(); signOut(); }} style={styles.navLink}>Sign out</a>
                     </div>
                 )}

@@ -2,7 +2,8 @@
 // production the API serves the built SPA from the same origin.
 import type {
     Appointment, AppointmentInput, Course, CurrentUser, Incident, IncidentCategory, IncidentInput, IncidentStatus,
-    Paged, Person, PersonInput, PersonOption, TrainingClass, TrainingClassInput, WorkTask,
+    OrgUnit, Paged, Person, PersonInput, PersonOption, Role, RoleAssignment, TrainingClass, TrainingClassInput,
+    UserOption, WorkTask,
 } from '../types/api';
 
 /** An error response from the API, with the problem-details message flattened for display. */
@@ -21,12 +22,14 @@ interface ProblemDetails {
     errors?: Record<string, string[]>;
 }
 
-function problemMessage(problem: ProblemDetails | null): string {
+function problemMessage(status: number, problem: ProblemDetails | null): string {
     if (problem?.errors) {
         const messages = Object.values(problem.errors).flat();
         if (messages.length > 0) return messages.join(' ');
     }
-    return problem?.detail ?? problem?.title ?? 'Request failed';
+    if (problem?.detail) return problem.detail;
+    if (status === 403) return "You don't have permission to do that.";
+    return problem?.title ?? 'Request failed';
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -43,7 +46,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     }
     if (!response.ok) {
         const problem = await response.json().catch(() => null) as ProblemDetails | null;
-        throw new ApiError(response.status, problemMessage(problem));
+        throw new ApiError(response.status, problemMessage(response.status, problem));
     }
     if (response.status === 204) return undefined as T;
     return response.json();
@@ -168,6 +171,22 @@ export const api = {
 
     deleteIncident: (id: number) =>
         request<void>(`/api/incidents/${id}`, { method: 'DELETE' }),
+
+    // Access levels
+    getOrgUnits: () =>
+        request<OrgUnit[]>('/api/access/org-units'),
+
+    listRoleAssignments: () =>
+        request<RoleAssignment[]>('/api/access/assignments'),
+
+    listAccessUsers: () =>
+        request<UserOption[]>('/api/access/users'),
+
+    grantRole: (data: { userId: number; orgUnitId: number; role: Role }) =>
+        request<RoleAssignment>('/api/access/assignments', { method: 'POST', body: json(data) }),
+
+    revokeRole: (id: number) =>
+        request<void>(`/api/access/assignments/${id}`, { method: 'DELETE' }),
 
     lookupPeople: (search?: string) =>
         request<PersonOption[]>(`/api/personnel/lookup${query({ search })}`),

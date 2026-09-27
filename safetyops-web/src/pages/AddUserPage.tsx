@@ -6,6 +6,8 @@ import { errorMessage } from '../services/errors';
 import PageLayout from '../components/PageLayout';
 import SelectDialog from '../components/SelectDialog';
 import { styles } from '../styles/theme';
+import { useAccess } from '../auth/currentUser';
+import OrgUnitSelect from '../components/OrgUnitSelect';
 import { EMPTY_PERSON, GENDERS, PERSON_DIALOGS, type PersonDialog } from './personnelOptions';
 
 const pickerButton = { ...styles.smallButton, marginLeft: '10px' };
@@ -13,10 +15,11 @@ const pickerButton = { ...styles.smallButton, marginLeft: '10px' };
 export default function AddUserPage() {
     const navigate = useNavigate();
     const [dialog, setDialog] = useState<PersonDialog | null>(null);
-    const [form, setForm] = useState<PersonInput>(EMPTY_PERSON);
+    const access = useAccess();
+    const [form, setForm] = useState<PersonInput>(() => ({ ...EMPTY_PERSON, orgUnitId: access.writableUnits[0]?.id }));
     const [error, setError] = useState<string | null>(null);
 
-    function setField(field: keyof PersonInput, value: string) {
+    function setField(field: Exclude<keyof PersonInput, 'orgUnitId'>, value: string) {
         setForm(prev => ({ ...prev, [field]: value }));
     }
 
@@ -40,6 +43,12 @@ export default function AddUserPage() {
             <PageLayout section={{ label: 'Personnel', to: '/personnel' }}>
                 <h3 style={styles.heading}>Add New User</h3>
                 {error && <div role="alert" style={styles.errorText}>{error}</div>}
+
+                <div style={styles.field}>
+                    <label htmlFor="org-unit" style={styles.label}>Organization Unit</label>
+                    <OrgUnitSelect id="org-unit" units={access.writableUnits} value={form.orgUnitId}
+                        onChange={orgUnitId => setForm(prev => ({ ...prev, orgUnitId }))} style={{ ...styles.input, width: '374px' }} />
+                </div>
 
                 <div style={styles.field}>
                     <label style={styles.label}>Department</label>
