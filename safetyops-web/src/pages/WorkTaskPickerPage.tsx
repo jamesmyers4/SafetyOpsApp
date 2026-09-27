@@ -1,27 +1,14 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { api } from '../services/api';
+import { postToParent } from '../services/messaging';
+import { useSearch } from '../hooks/useSearch';
+import LoadStatus from '../components/LoadStatus';
+import { styles } from '../styles/theme';
 
-interface WorkTask {
-    id: string;
-    name: string;
-    stressors: { stressorId: string; stressorName: string }[];
-    examTypeOptions: string[];
-}
-
+/** Nested iframe inside the appointment frames; posts the stressors of the checked work tasks to its parent. */
 export default function WorkTaskPickerPage() {
-    const [tasks, setTasks] = useState<WorkTask[]>([]);
+    const { results: tasks, loading, error, run } = useSearch(useCallback(() => api.getWorkTasks(), []));
     const [selected, setSelected] = useState<Set<string>>(new Set());
-    const [searched, setSearched] = useState(false);
-
-    async function handleSearch() {
-        try {
-            const results = await api.getWorkTasks();
-            setTasks(results);
-            setSearched(true);
-        } catch (e) {
-            console.error(e);
-        }
-    }
 
     function toggleTask(id: string) {
         setSelected(prev => {
@@ -32,50 +19,41 @@ export default function WorkTaskPickerPage() {
     }
 
     function handleSave() {
-        const selectedTasks = tasks
+        const stressors = (tasks ?? [])
             .filter(t => selected.has(t.id))
-            .flatMap(t => t.stressors.map(s => ({
-                stressorId: s.stressorId,
-                stressorName: s.stressorName,
-                examTypeOptions: t.examTypeOptions,
-            })));
-        window.parent.postMessage({ type: 'workTasksSelected', tasks: selectedTasks }, '*');
+            .flatMap(t => t.stressors.map(s => ({ ...s, examTypeOptions: t.examTypeOptions })));
+        postToParent({ type: 'workTasksSelected', tasks: stressors });
     }
 
     return (
-        <div style={{ fontFamily: 'Arial, sans-serif', padding: '16px', background: 'white', minHeight: '100%' }}>
-            <h4 style={{ color: '#1a2744', marginTop: 0 }}>Select Work Tasks</h4>
-            <button onClick={handleSearch}
-                style={{ background: '#1a2744', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', marginBottom: '12px' }}>
-                Search
-            </button>
+        <div style={{ ...styles.frame, padding: '16px', minHeight: '100%' }}>
+            <h4 style={styles.frameHeading}>Select Work Tasks</h4>
+            <button onClick={run} style={{ ...styles.smallButton, padding: '8px 20px', marginBottom: '12px' }}>Search</button>
 
-            {searched && tasks.length === 0 && <p style={{ color: '#666' }}>No work tasks found.</p>}
+            <LoadStatus loading={loading} error={error} />
+            {!loading && tasks?.length === 0 && <p style={styles.emptyText}>No work tasks found.</p>}
 
-            {tasks.length > 0 && (
+            {tasks && tasks.length > 0 && (
                 <>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '12px' }}>
+                    <table style={{ ...styles.table, marginBottom: '12px' }}>
                         <thead>
                             <tr>
-                                <th style={{ background: '#1a2744', color: 'white', padding: '8px', textAlign: 'left', width: '40px' }}>Select</th>
-                                <th style={{ background: '#1a2744', color: 'white', padding: '8px', textAlign: 'left' }}>Work Task</th>
+                                <th style={{ ...styles.compactTh, padding: '8px', width: '40px' }}>Select</th>
+                                <th style={{ ...styles.compactTh, padding: '8px' }}>Work Task</th>
                             </tr>
                         </thead>
                         <tbody>
                             {tasks.map(t => (
                                 <tr key={t.id}>
-                                    <td style={{ padding: '8px', borderBottom: '1px solid #eee', textAlign: 'center' }}>
+                                    <td style={{ ...styles.compactTd, padding: '8px', textAlign: 'center' }}>
                                         <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggleTask(t.id)} />
                                     </td>
-                                    <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{t.name}</td>
+                                    <td style={{ ...styles.compactTd, padding: '8px' }}>{t.name}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                    <button onClick={handleSave}
-                        style={{ background: '#1a2744', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer' }}>
-                        Save
-                    </button>
+                    <button onClick={handleSave} style={{ ...styles.smallButton, padding: '8px 20px' }}>Save</button>
                 </>
             )}
         </div>

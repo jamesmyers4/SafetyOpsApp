@@ -1,57 +1,40 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
 import { api } from '../services/api';
+import { postToOpener } from '../services/messaging';
+import { useSearch } from '../hooks/useSearch';
+import type { PersonOption } from '../types/api';
+import LoadStatus from '../components/LoadStatus';
+import { styles } from '../styles/theme';
 
-interface Person {
-    id: number;
-    name: string;
-}
-
+/** Popup window opened by the appointment frames; sends the chosen person back and closes. */
 export default function PersonPickerPage() {
-    const [persons, setPersons] = useState<Person[]>([]);
-    const [searched, setSearched] = useState(false);
+    const { results: persons, loading, error, run } = useSearch(useCallback(() => api.getPersonOptions(), []));
 
-    async function handleSearch() {
-        try {
-            const results = await api.getPersonOptions();
-            setPersons(results);
-            setSearched(true);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    function selectPerson(person: Person) {
-        if (window.opener) {
-            window.opener.postMessage({ type: 'personSelected', id: person.id, name: person.name }, '*');
-        }
+    function selectPerson(person: PersonOption) {
+        postToOpener({ type: 'personSelected', id: person.id, name: person.name });
         window.close();
     }
 
     return (
-        <div style={{ fontFamily: 'Arial, sans-serif', padding: '20px', background: 'white', minHeight: '100vh' }}>
-            <h3 style={{ color: '#1a2744', marginTop: 0 }}>Select Person Evaluated</h3>
-            <button onClick={handleSearch}
-                style={{ background: '#1a2744', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', marginBottom: '16px' }}>
-                Search
-            </button>
+        <div style={styles.frame}>
+            <h3 style={styles.frameHeading}>Select Person Evaluated</h3>
+            <button onClick={run} style={{ ...styles.smallButton, padding: '8px 20px', marginBottom: '16px' }}>Search</button>
 
-            {searched && persons.length === 0 && <p style={{ color: '#666' }}>No persons found.</p>}
+            <LoadStatus loading={loading} error={error} />
+            {!loading && persons?.length === 0 && <p style={styles.emptyText}>No persons found.</p>}
 
-            {persons.length > 0 && (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            {persons && persons.length > 0 && (
+                <table style={styles.table}>
                     <thead>
                         <tr>
-                            <th style={{ background: '#1a2744', color: 'white', padding: '10px', textAlign: 'left' }}>Name</th>
+                            <th style={styles.compactTh}>Name</th>
                         </tr>
                     </thead>
                     <tbody>
                         {persons.map(p => (
                             <tr key={p.id}>
-                                <td style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
-                                    <a href="#" onClick={e => { e.preventDefault(); selectPerson(p); }}
-                                        style={{ color: '#1a2744', textDecoration: 'underline', cursor: 'pointer' }}>
-                                        {p.name}
-                                    </a>
+                                <td style={styles.compactTd}>
+                                    <a href="#" onClick={e => { e.preventDefault(); selectPerson(p); }} style={styles.textLink}>{p.name}</a>
                                 </td>
                             </tr>
                         ))}

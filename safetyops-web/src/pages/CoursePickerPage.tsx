@@ -1,62 +1,43 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
 import { api } from '../services/api';
+import { postToOpener } from '../services/messaging';
+import { useSearch } from '../hooks/useSearch';
+import type { Course } from '../types/api';
+import LoadStatus from '../components/LoadStatus';
+import { styles } from '../styles/theme';
 
-interface Course {
-    id: string;
-    title: string;
-}
-
+/** Popup window opened by the class frames; sends the chosen course back to its opener and closes. */
 export default function CoursePickerPage() {
-    const [courses, setCourses] = useState<Course[]>([]);
-    const [searched, setSearched] = useState(false);
-
-    async function handleSearch() {
-        try {
-            const results = await api.getCourses();
-            setCourses(results);
-            setSearched(true);
-        } catch (e) {
-            console.error(e);
-        }
-    }
+    const { results: courses, loading, error, run } = useSearch(useCallback(() => api.getCourses(), []));
 
     function selectCourse(course: Course) {
-        if (window.opener) {
-            window.opener.postMessage({ type: 'courseSelected', courseTitle: course.title, courseId: course.id }, '*');
-        }
+        postToOpener({ type: 'courseSelected', courseTitle: course.title, courseId: course.id });
         window.close();
     }
 
     return (
-        <div style={{ fontFamily: 'Arial, sans-serif', padding: '20px', background: 'white', minHeight: '100vh' }}>
-            <h3 style={{ color: '#1a2744', marginTop: 0 }}>Select Course</h3>
-            <button
-                onClick={handleSearch}
-                style={{ background: '#1a2744', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '4px', cursor: 'pointer', marginBottom: '16px' }}
-            >
-                Search
-            </button>
+        <div style={styles.frame}>
+            <h3 style={styles.frameHeading}>Select Course</h3>
+            <button onClick={run} style={{ ...styles.smallButton, padding: '8px 20px', marginBottom: '16px' }}>Search</button>
 
-            {searched && courses.length === 0 && <p style={{ color: '#666' }}>No courses found.</p>}
+            <LoadStatus loading={loading} error={error} />
+            {!loading && courses?.length === 0 && <p style={styles.emptyText}>No courses found.</p>}
 
-            {courses.length > 0 && (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            {courses && courses.length > 0 && (
+                <table style={styles.table}>
                     <thead>
                         <tr>
-                            <th style={{ background: '#1a2744', color: 'white', padding: '10px', textAlign: 'left' }}>Course Title</th>
-                            <th style={{ background: '#1a2744', color: 'white', padding: '10px', textAlign: 'left' }}>ID</th>
+                            <th style={styles.compactTh}>Course Title</th>
+                            <th style={styles.compactTh}>ID</th>
                         </tr>
                     </thead>
                     <tbody>
                         {courses.map(c => (
                             <tr key={c.id}>
-                                <td style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
-                                    <a href="#" onClick={e => { e.preventDefault(); selectCourse(c); }}
-                                        style={{ color: '#1a2744', textDecoration: 'underline', cursor: 'pointer' }}>
-                                        {c.title}
-                                    </a>
+                                <td style={styles.compactTd}>
+                                    <a href="#" onClick={e => { e.preventDefault(); selectCourse(c); }} style={styles.textLink}>{c.title}</a>
                                 </td>
-                                <td style={{ padding: '10px', borderBottom: '1px solid #eee' }}>{c.id}</td>
+                                <td style={styles.compactTd}>{c.id}</td>
                             </tr>
                         ))}
                     </tbody>
