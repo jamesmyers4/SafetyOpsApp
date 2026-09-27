@@ -30,6 +30,7 @@ builder.Services.AddControllers(options =>
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 builder.Services.AddProblemDetails();
+builder.Services.AddHealthChecks();
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -61,7 +62,11 @@ app.UseStatusCodePages();
 
 app.UseDefaultFiles();
 
-app.UseHttpsRedirection();
+// In a container, TLS is terminated in front of the app (the image only listens on HTTP).
+if (!app.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER"))
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -74,6 +79,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+app.MapHealthChecks("/healthz").AllowAnonymous();
 
 // Unknown API routes get a 404 problem response; everything else falls through to the SPA.
 app.MapFallback("/api/{**path}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound)).AllowAnonymous();

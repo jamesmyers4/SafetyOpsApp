@@ -52,3 +52,11 @@ jobs:
       - run: npm run lint
       - name: Type-check (strict) and build
         run: npm run build
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build image
+        run: docker build --tag safetyops:ci .
