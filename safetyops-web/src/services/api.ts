@@ -1,5 +1,101 @@
 // Relative URLs: the Vite dev server proxies API calls to ASP.NET Core, and in
 // production the API serves the built SPA from the same origin.
+
+export interface Paged<T> {
+    items: T[];
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+}
+
+export interface Person {
+    id: number;
+    firstName: string;
+    lastName: string;
+    middleName: string;
+    gender: string;
+    department: string;
+    employeeCategory: string;
+    subscription: string;
+    employeeNumber: string;
+}
+export type PersonInput = Omit<Person, 'id'>;
+
+export interface TrainingClass {
+    id: number;
+    courseTitle: string;
+    courseId: string;
+    /** MM/DD/YYYY (converted from the API's ISO date) */
+    classDate: string;
+    location: string;
+}
+export interface TrainingClassInput {
+    courseId: string;
+    classDate: string;
+    location: string;
+}
+
+export interface Course {
+    id: string;
+    title: string;
+}
+
+export interface AppointmentStressor {
+    stressorId: string;
+    stressorName: string;
+    examType: string;
+}
+export interface Appointment {
+    id: number;
+    /** MM/DD/YYYY (converted from the API's ISO date) */
+    date: string;
+    personId: number;
+    personName: string;
+    stressors: AppointmentStressor[];
+}
+export interface AppointmentInput {
+    date: string;
+    personId: number;
+    stressors: { stressorId: string; examType: string }[];
+}
+
+export interface PersonOption {
+    id: number;
+    name: string;
+}
+
+export interface WorkTask {
+    id: string;
+    name: string;
+    stressors: { stressorId: string; stressorName: string }[];
+    examTypeOptions: string[];
+}
+
+/** An error response from the API, with the problem-details message flattened for display. */
+export class ApiError extends Error {
+    readonly status: number;
+
+    constructor(status: number, message: string) {
+        super(message);
+        this.status = status;
+    }
+}
+
+interface ProblemDetails {
+    title?: string;
+    detail?: string;
+    errors?: Record<string, string[]>;
+}
+
+function problemMessage(problem: ProblemDetails | null): string {
+    if (problem?.errors) {
+        const messages = Object.values(problem.errors).flat();
+        if (messages.length > 0) return messages.join(' ');
+    }
+    return problem?.detail ?? problem?.title ?? 'Request failed';
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
     const response = await fetch(url, {
         credentials: 'include',
@@ -7,18 +103,46 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
         ...options,
     });
     if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Request failed' }));
-        throw new Error(error.message ?? 'Request failed');
+        const problem = await response.json().catch(() => null) as ProblemDetails | null;
+        throw new ApiError(response.status, problemMessage(problem));
     }
+    if (response.status === 204) return undefined as T;
     return response.json();
 }
 
+function query(params: Record<string, string | number | undefined>): string {
+    const qs = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== '') qs.set(key, String(value));
+    }
+    const s = qs.toString();
+    return s ? `?${s}` : '';
+}
+
+/** 'MM/DD/YYYY' → 'YYYY-MM-DD'. Anything else is passed through for the API to reject. */
+export function toIsoDate(date: string): string {
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(date.trim());
+    return m ? `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}` : date;
+}
+
+/** 'YYYY-MM-DD' → 'MM/DD/YYYY'. */
+export function fromIsoDate(date: string): string {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+    return m ? `${m[2]}/${m[3]}/${m[1]}` : date;
+}
+
+const json = (body: unknown) => JSON.stringify(body);
+const fromApiClass = (c: TrainingClass): TrainingClass => ({ ...c, classDate: fromIsoDate(c.classDate) });
+const toApiClass = (c: TrainingClassInput) => ({ ...c, classDate: toIsoDate(c.classDate) });
+const fromApiAppointment = (a: Appointment): Appointment => ({ ...a, date: fromIsoDate(a.date) });
+const toApiAppointment = (a: AppointmentInput) => ({ ...a, date: toIsoDate(a.date) });
+
+/** Search screens show the first page of matches, up to the API's maximum page size. */
+const SEARCH_PAGE_SIZE = 100;
+
 export const api = {
     login: (username: string, password: string) =>
-        request<{ success: boolean }>('/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ username, password }),
-        }),
+        request<{ success: boolean }>('/auth/login', { method: 'POST', body: json({ username, password }) }),
 
     checkAuth: () =>
         request<{ authenticated: boolean }>('/auth/check'),
@@ -27,101 +151,62 @@ export const api = {
         request<{ success: boolean }>('/auth/logout', { method: 'POST' }),
 
     // Personnel
-    addUser: (data: {
-        firstName: string; lastName: string; middleName: string; gender: string;
-        department: string; employeeCategory: string; subscription: string; employeeNumber: string;
-    }) =>
-        request<{ success: boolean; message: string; id: number }>('/api/personnel/create', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }),
+    listPeople: (params: { search?: string; page?: number; pageSize?: number }) =>
+        request<Paged<Person>>(`/api/personnel${query(params)}`),
 
-    getUsers: (search?: string) =>
-        request<{ id: number; firstName: string; lastName: string; middleName: string; gender: string; department: string; employeeCategory: string; subscription: string; employeeNumber: string }[]>(
-            `/api/personnel/users${search ? `?search=${encodeURIComponent(search)}` : ''}`
-        ),
+    getUsers: async (search?: string) =>
+        (await request<Paged<Person>>(`/api/personnel${query({ search, pageSize: SEARCH_PAGE_SIZE })}`)).items,
 
     getUser: (id: number) =>
-        request<{ id: number; firstName: string; lastName: string; middleName: string; gender: string; department: string; employeeCategory: string; subscription: string; employeeNumber: string }>(
-            `/api/personnel/users/${id}`
-        ),
+        request<Person>(`/api/personnel/${id}`),
 
-    updateUser: (id: number, data: {
-        firstName: string; lastName: string; middleName: string; gender: string;
-        department: string; employeeCategory: string; subscription: string; employeeNumber: string;
-    }) =>
-        request<{ success: boolean; message: string }>(`/api/personnel/users/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        }),
+    addUser: (data: PersonInput) =>
+        request<Person>('/api/personnel', { method: 'POST', body: json(data) }),
+
+    updateUser: (id: number, data: PersonInput) =>
+        request<Person>(`/api/personnel/${id}`, { method: 'PUT', body: json(data) }),
 
     deleteUser: (id: number) =>
-        request<{ success: boolean }>(`/api/personnel/users/${id}`, { method: 'DELETE' }),
+        request<void>(`/api/personnel/${id}`, { method: 'DELETE' }),
 
     // Training
-    getTrainingClasses: (search?: string) =>
-        request<{ id: number; courseTitle: string; courseId: string; classDate: string; location: string }[]>(
-            `/api/training/classes${search ? `?search=${encodeURIComponent(search)}` : ''}`
-        ),
+    getTrainingClasses: async (search?: string) =>
+        (await request<Paged<TrainingClass>>(`/api/training/classes${query({ search, pageSize: SEARCH_PAGE_SIZE })}`)).items.map(fromApiClass),
 
-    getTrainingClass: (id: number) =>
-        request<{ id: number; courseTitle: string; courseId: string; classDate: string; location: string }>(
-            `/api/training/classes/${id}`
-        ),
+    getTrainingClass: async (id: number) =>
+        fromApiClass(await request<TrainingClass>(`/api/training/classes/${id}`)),
 
-    createTrainingClass: (data: { courseTitle: string; courseId: string; classDate: string; location: string }) =>
-        request<{ success: boolean; message: string; id: number }>('/api/training/classes', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }),
+    createTrainingClass: async (data: TrainingClassInput) =>
+        fromApiClass(await request<TrainingClass>('/api/training/classes', { method: 'POST', body: json(toApiClass(data)) })),
 
-    updateTrainingClass: (id: number, data: { courseTitle: string; courseId: string; classDate: string; location: string }) =>
-        request<{ success: boolean; message: string }>(`/api/training/classes/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        }),
+    updateTrainingClass: async (id: number, data: TrainingClassInput) =>
+        fromApiClass(await request<TrainingClass>(`/api/training/classes/${id}`, { method: 'PUT', body: json(toApiClass(data)) })),
 
     deleteTrainingClass: (id: number) =>
-        request<{ success: boolean }>(`/api/training/classes/${id}`, { method: 'DELETE' }),
+        request<void>(`/api/training/classes/${id}`, { method: 'DELETE' }),
 
     getCourses: (search?: string) =>
-        request<{ id: string; title: string }[]>(
-            `/api/training/courses${search ? `?search=${encodeURIComponent(search)}` : ''}`
-        ),
+        request<Course[]>(`/api/training/courses${query({ search })}`),
 
     // Medical surveillance
-    getAppointments: (search?: string) =>
-        request<{ id: number; date: string; personName: string; personId: number; stressors: { stressorId: string; stressorName: string; examType: string }[] }[]>(
-            `/api/medical-surveillance/appointments${search ? `?search=${encodeURIComponent(search)}` : ''}`
-        ),
+    getAppointments: async (search?: string) =>
+        (await request<Paged<Appointment>>(`/api/medical-surveillance/appointments${query({ search, pageSize: SEARCH_PAGE_SIZE })}`)).items.map(fromApiAppointment),
 
-    getAppointment: (id: number) =>
-        request<{ id: number; date: string; personName: string; personId: number; stressors: { stressorId: string; stressorName: string; examType: string }[] }>(
-            `/api/medical-surveillance/appointments/${id}`
-        ),
+    getAppointment: async (id: number) =>
+        fromApiAppointment(await request<Appointment>(`/api/medical-surveillance/appointments/${id}`)),
 
-    createAppointment: (data: { date: string; personName: string; personId: number; stressors: { stressorId: string; stressorName: string; examType: string }[] }) =>
-        request<{ success: boolean; message: string; id: number }>('/api/medical-surveillance/appointments', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }),
+    createAppointment: async (data: AppointmentInput) =>
+        fromApiAppointment(await request<Appointment>('/api/medical-surveillance/appointments', { method: 'POST', body: json(toApiAppointment(data)) })),
 
-    updateAppointment: (id: number, data: { date: string; personName: string; personId: number; stressors: { stressorId: string; stressorName: string; examType: string }[] }) =>
-        request<{ success: boolean; message: string }>(`/api/medical-surveillance/appointments/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        }),
+    updateAppointment: async (id: number, data: AppointmentInput) =>
+        fromApiAppointment(await request<Appointment>(`/api/medical-surveillance/appointments/${id}`, { method: 'PUT', body: json(toApiAppointment(data)) })),
 
     deleteAppointment: (id: number) =>
-        request<{ success: boolean }>(`/api/medical-surveillance/appointments/${id}`, { method: 'DELETE' }),
+        request<void>(`/api/medical-surveillance/appointments/${id}`, { method: 'DELETE' }),
 
     getPersonOptions: (search?: string) =>
-        request<{ id: number; name: string }[]>(
-            `/api/medical-surveillance/persons${search ? `?search=${encodeURIComponent(search)}` : ''}`
-        ),
+        request<PersonOption[]>(`/api/medical-surveillance/persons${query({ search })}`),
 
     getWorkTasks: () =>
-        request<{ id: string; name: string; stressors: { stressorId: string; stressorName: string }[]; examTypeOptions: string[] }[]>(
-            '/api/medical-surveillance/work-tasks'
-        ),
+        request<WorkTask[]>('/api/medical-surveillance/work-tasks'),
 };

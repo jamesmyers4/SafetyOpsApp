@@ -87,9 +87,8 @@ export default function CreateAppointmentFrame() {
         try {
             const result = await api.createAppointment({
                 date,
-                personName,
                 personId,
-                stressors: stressors.map(s => ({ stressorId: s.stressorId, stressorName: s.stressorName, examType: s.examType })),
+                stressors: stressors.map(s => ({ stressorId: s.stressorId, examType: s.examType })),
             });
             window.parent.location.href = `/medical-surveillance/appointments/${result.id}`;
         } catch (e: unknown) {
