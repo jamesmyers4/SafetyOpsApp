@@ -14,5 +14,8 @@ public class TrainingClassConfiguration : IEntityTypeConfiguration<TrainingClass
             .HasForeignKey(c => c.CourseId)
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(c => new { c.CourseId, c.ClassDate });
+
+        builder.Property(x => x.OrgUnitId).HasDefaultValue(OrgUnit.RootId);
+        builder.HasOne(x => x.OrgUnit).WithMany().HasForeignKey(x => x.OrgUnitId).OnDelete(DeleteBehavior.Restrict);
     }
 }

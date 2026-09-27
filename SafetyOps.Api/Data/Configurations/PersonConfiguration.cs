@@ -18,5 +18,8 @@ public class PersonConfiguration : IEntityTypeConfiguration<Person>
         builder.Property(p => p.EmployeeNumber).HasMaxLength(20);
         builder.Ignore(p => p.FullName);
         builder.HasIndex(p => new { p.LastName, p.FirstName });
+
+        builder.Property(x => x.OrgUnitId).HasDefaultValue(OrgUnit.RootId);
+        builder.HasOne(x => x.OrgUnit).WithMany().HasForeignKey(x => x.OrgUnitId).OnDelete(DeleteBehavior.Restrict);
     }
 }

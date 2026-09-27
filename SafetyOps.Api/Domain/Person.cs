@@ -13,5 +13,9 @@ public class Person
     public string Subscription { get; set; } = string.Empty;
     public string EmployeeNumber { get; set; } = string.Empty;
 
+    /// <summary>Owning org unit; access to this record follows roles on that unit and its ancestors.</summary>
+    public int OrgUnitId { get; set; }
+    public OrgUnit OrgUnit { get; set; } = null!;
+
     public string FullName => $"{FirstName} {LastName}";
 }
