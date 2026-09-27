@@ -1,18 +1,20 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
+using SafetyOps.Api.Data;
+using SafetyOps.Api.Domain;
 
 namespace SafetyOps.Api.Controllers
 {
-    public class MedicalAppointment
+    public class AppointmentRecord
     {
         public int Id { get; set; }
         public string Date { get; set; } = string.Empty;
         public string PersonName { get; set; } = string.Empty;
         public int PersonId { get; set; }
-        public List<Stressor> Stressors { get; set; } = [];
+        public List<StressorRecord> Stressors { get; set; } = [];
     }
 
-    public class Stressor
+    public class StressorRecord
     {
         public string StressorId { get; set; } = string.Empty;
         public string StressorName { get; set; } = string.Empty;
@@ -25,142 +27,146 @@ namespace SafetyOps.Api.Controllers
         public string Name { get; set; } = string.Empty;
     }
 
-    public class WorkTask
+    public class WorkTaskRecord
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public List<Stressor> Stressors { get; set; } = [];
+        public List<StressorRecord> Stressors { get; set; } = [];
         public List<string> ExamTypeOptions { get; set; } = [];
     }
 
     [ApiController]
-    public class MedicalSurveillanceController : ControllerBase
+    public class MedicalSurveillanceController(AppDbContext db) : ControllerBase
     {
-        private static int _nextId = 1;
-        private static readonly ConcurrentDictionary<int, MedicalAppointment> _appointments = new();
-
-        private static readonly List<PersonOption> _persons =
-        [
-            new PersonOption { Id = 1, Name = "John Smith" },
-            new PersonOption { Id = 2, Name = "Jane Doe" },
-            new PersonOption { Id = 3, Name = "Robert Johnson" },
-            new PersonOption { Id = 4, Name = "Mary Williams" },
-            new PersonOption { Id = 5, Name = "James Brown" },
-        ];
-
-        private static readonly List<WorkTask> _workTasks =
-        [
-            new WorkTask
-            {
-                Id = "WT-001", Name = "Chemical Exposure - Solvents",
-                Stressors = [ new Stressor { StressorId = "STR-001", StressorName = "Solvent Exposure" } ],
-                ExamTypeOptions = [ "Initial", "Periodic", "Exit", "Return to Duty" ],
-            },
-            new WorkTask
-            {
-                Id = "WT-002", Name = "Noise Hazard - Industrial",
-                Stressors = [ new Stressor { StressorId = "STR-002", StressorName = "Noise Exposure" } ],
-                ExamTypeOptions = [ "Initial", "Periodic", "Exit" ],
-            },
-            new WorkTask
-            {
-                Id = "WT-003", Name = "Respiratory Hazard - Dust",
-                Stressors = [ new Stressor { StressorId = "STR-003", StressorName = "Dust Inhalation" } ],
-                ExamTypeOptions = [ "Initial", "Periodic", "Exit", "Special" ],
-            },
-        ];
-
-        static MedicalSurveillanceController()
-        {
-            var today = DateTime.Today;
-            var seed = new[]
-            {
-                new MedicalAppointment
-                {
-                    Date = today.AddDays(-3).ToString("MM/dd/yyyy"), PersonName = "John Smith", PersonId = 1,
-                    Stressors = [ new Stressor { StressorId = "STR-001", StressorName = "Solvent Exposure", ExamType = "Initial" } ],
-                },
-                new MedicalAppointment
-                {
-                    Date = today.AddDays(-7).ToString("MM/dd/yyyy"), PersonName = "Jane Doe", PersonId = 2,
-                    Stressors = [ new Stressor { StressorId = "STR-002", StressorName = "Noise Exposure", ExamType = "Periodic" } ],
-                },
-                new MedicalAppointment
-                {
-                    Date = today.AddDays(-14).ToString("MM/dd/yyyy"), PersonName = "Robert Johnson", PersonId = 3,
-                    Stressors = [ new Stressor { StressorId = "STR-003", StressorName = "Dust Inhalation", ExamType = "Exit" } ],
-                },
-            };
-            foreach (var a in seed)
-            {
-                a.Id = _nextId++;
-                _appointments[a.Id] = a;
-            }
-        }
-
         [HttpPost("/api/medical-surveillance/appointments")]
-        public IActionResult Create([FromBody] MedicalAppointment appointment)
+        public async Task<IActionResult> Create([FromBody] AppointmentRecord record)
         {
-            appointment.Id = _nextId++;
-            _appointments[appointment.Id] = appointment;
+            var appointment = new MedicalAppointment();
+            if (await ApplyAsync(record, appointment) is { } error)
+                return BadRequest(new { message = error });
+            db.MedicalAppointments.Add(appointment);
+            await db.SaveChangesAsync();
             return Ok(new { success = true, message = "Appointment created", id = appointment.Id });
         }
 
         [HttpGet("/api/medical-surveillance/appointments")]
-        public IActionResult GetAppointments([FromQuery] string? search = null)
+        public async Task<IActionResult> GetAppointments([FromQuery] string? search = null)
         {
-            var appts = _appointments.Values.AsEnumerable();
+            var query = Appointments();
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var lower = search.ToLowerInvariant();
-                appts = appts.Where(a =>
-                    a.PersonName.Contains(lower, StringComparison.OrdinalIgnoreCase) ||
-                    a.Date.Contains(lower, StringComparison.OrdinalIgnoreCase) ||
-                    a.Id.ToString().Contains(lower, StringComparison.OrdinalIgnoreCase) ||
-                    lower == "appointment" || lower == "appointments");
+                var term = search.Trim();
+                var lower = term.ToLowerInvariant();
+                // Kept from the original API: the words "appointment(s)" match everything. Removed in Session 6.
+                if (lower is not ("appointment" or "appointments"))
+                {
+                    var pattern = SqlLike.Contains(term);
+                    var hasDate = DateFormats.TryParse(term, out var date);
+                    var hasId = int.TryParse(term, out var id);
+                    query = query.Where(a =>
+                        EF.Functions.Like(a.Person.FirstName + " " + a.Person.LastName, pattern, SqlLike.Escape) ||
+                        (hasDate && a.Date == date) ||
+                        (hasId && a.Id == id));
+                }
             }
-            return Ok(appts.OrderByDescending(a => a.Id).ToList());
+            var appointments = await query.OrderByDescending(a => a.Id).ToListAsync();
+            return Ok(appointments.Select(ToRecord));
         }
 
         [HttpGet("/api/medical-surveillance/appointments/{id}")]
-        public IActionResult GetAppointment(int id)
+        public async Task<IActionResult> GetAppointment(int id)
         {
-            return _appointments.TryGetValue(id, out var appt)
-                ? Ok(appt)
-                : NotFound(new { message = "Appointment not found" });
+            var appointment = await Appointments().FirstOrDefaultAsync(a => a.Id == id);
+            return appointment is null
+                ? NotFound(new { message = "Appointment not found" })
+                : Ok(ToRecord(appointment));
         }
 
         [HttpPut("/api/medical-surveillance/appointments/{id}")]
-        public IActionResult Update(int id, [FromBody] MedicalAppointment appointment)
+        public async Task<IActionResult> Update(int id, [FromBody] AppointmentRecord record)
         {
-            if (!_appointments.ContainsKey(id))
+            var appointment = await db.MedicalAppointments.Include(a => a.Stressors).FirstOrDefaultAsync(a => a.Id == id);
+            if (appointment is null)
                 return NotFound(new { message = "Appointment not found" });
-            appointment.Id = id;
-            _appointments[id] = appointment;
+            if (await ApplyAsync(record, appointment) is { } error)
+                return BadRequest(new { message = error });
+            await db.SaveChangesAsync();
             return Ok(new { success = true, message = "Appointment updated" });
         }
 
         [HttpDelete("/api/medical-surveillance/appointments/{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            return _appointments.TryRemove(id, out _)
-                ? Ok(new { success = true })
-                : NotFound(new { message = "Appointment not found" });
+            var appointment = await db.MedicalAppointments.Include(a => a.Stressors).FirstOrDefaultAsync(a => a.Id == id);
+            if (appointment is null)
+                return NotFound(new { message = "Appointment not found" });
+            db.MedicalAppointments.Remove(appointment);
+            await db.SaveChangesAsync();
+            return Ok(new { success = true });
         }
 
         [HttpGet("/api/medical-surveillance/persons")]
-        public IActionResult GetPersons([FromQuery] string? search = null)
+        public async Task<IActionResult> GetPersons([FromQuery] string? search = null)
         {
-            var persons = _persons.AsEnumerable();
+            var query = db.People.AsNoTracking();
             if (!string.IsNullOrWhiteSpace(search))
-                persons = persons.Where(p => p.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
-            return Ok(persons.ToList());
+                query = query.Where(p => EF.Functions.Like(p.FirstName + " " + p.LastName, SqlLike.Contains(search), SqlLike.Escape));
+            var persons = await query
+                .OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
+                .Select(p => new PersonOption { Id = p.Id, Name = p.FirstName + " " + p.LastName })
+                .ToListAsync();
+            return Ok(persons);
         }
 
         [HttpGet("/api/medical-surveillance/work-tasks")]
-        public IActionResult GetWorkTasks()
+        public async Task<IActionResult> GetWorkTasks()
         {
-            return Ok(_workTasks);
+            var tasks = await db.WorkTasks.AsNoTracking().Include(t => t.Stressors).OrderBy(t => t.Id).ToListAsync();
+            return Ok(tasks.Select(t => new WorkTaskRecord
+            {
+                Id = t.Code,
+                Name = t.Name,
+                Stressors = t.Stressors.Select(s => new StressorRecord { StressorId = s.Code, StressorName = s.Name }).ToList(),
+                ExamTypeOptions = t.ExamTypeOptions,
+            }));
+        }
+
+        private IQueryable<MedicalAppointment> Appointments() =>
+            db.MedicalAppointments.AsNoTracking()
+                .Include(a => a.Person)
+                .Include(a => a.Stressors).ThenInclude(s => s.Stressor)
+                .AsSplitQuery();
+
+        private static AppointmentRecord ToRecord(MedicalAppointment a) => new()
+        {
+            Id = a.Id,
+            Date = DateFormats.ToWire(a.Date),
+            PersonId = a.PersonId,
+            PersonName = a.Person.FullName,
+            Stressors = a.Stressors
+                .Select(s => new StressorRecord { StressorId = s.Stressor.Code, StressorName = s.Stressor.Name, ExamType = s.ExamType })
+                .ToList(),
+        };
+
+        // Person and stressors are resolved by id/code; names in the request are ignored in favor of stored ones.
+        private async Task<string?> ApplyAsync(AppointmentRecord record, MedicalAppointment appointment)
+        {
+            if (!DateFormats.TryParse(record.Date, out var date))
+                return $"Invalid appointment date '{record.Date}'";
+            if (!await db.People.AnyAsync(p => p.Id == record.PersonId))
+                return $"Unknown person {record.PersonId}";
+
+            var codes = record.Stressors.Select(s => s.StressorId).Distinct().ToList();
+            var stressors = await db.Stressors.Where(s => codes.Contains(s.Code)).ToDictionaryAsync(s => s.Code);
+            if (codes.FirstOrDefault(c => !stressors.ContainsKey(c)) is { } unknown)
+                return $"Unknown stressor '{unknown}'";
+
+            appointment.Date = date;
+            appointment.PersonId = record.PersonId;
+            appointment.Stressors.Clear();
+            foreach (var s in record.Stressors.DistinctBy(s => s.StressorId))
+                appointment.Stressors.Add(new AppointmentStressor { StressorId = stressors[s.StressorId].Id, ExamType = s.ExamType });
+            return null;
         }
     }
 }
