@@ -8,7 +8,7 @@ namespace SafetyOps.Api.Features.Training;
 
 public interface ITrainingService
 {
-    Task<IReadOnlyList<TrainingClassDto>> SearchClassesAsync(string? search, CancellationToken ct = default);
+    Task<PagedResult<TrainingClassDto>> ListClassesAsync(ListQuery query, CancellationToken ct = default);
     Task<TrainingClassDto?> GetClassAsync(int id, CancellationToken ct = default);
     Task<Result<TrainingClassDto>> CreateClassAsync(TrainingClassRequest request, CancellationToken ct = default);
     Task<Result<TrainingClassDto>> UpdateClassAsync(int id, TrainingClassRequest request, CancellationToken ct = default);
@@ -16,21 +16,21 @@ public interface ITrainingService
     Task<IReadOnlyList<CourseDto>> GetCoursesAsync(string? search, CancellationToken ct = default);
 }
 
-public sealed class TrainingService(AppDbContext db) : ITrainingService
+public sealed class TrainingService(AppDbContext db, TimeProvider clock) : ITrainingService
 {
-    private static readonly Error ClassNotFound = Error.NotFound("Class not found");
+    public static readonly Error ClassNotFound = Error.NotFound("Class not found.");
 
-    public async Task<IReadOnlyList<TrainingClassDto>> SearchClassesAsync(string? search, CancellationToken ct = default)
+    public async Task<PagedResult<TrainingClassDto>> ListClassesAsync(ListQuery list, CancellationToken ct = default)
     {
         var query = db.TrainingClasses.AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(search))
+        if (!string.IsNullOrWhiteSpace(list.Search))
         {
-            var pattern = SqlLike.Contains(search);
+            var pattern = SqlLike.Contains(list.Search);
             query = query.Where(c =>
                 EF.Functions.Like(c.Course.Title, pattern, SqlLike.Escape) ||
                 EF.Functions.Like(c.Location, pattern, SqlLike.Escape));
         }
-        return await query.OrderByDescending(c => c.Id).Select(ToDto).ToListAsync(ct);
+        return await query.OrderByDescending(c => c.Id).Select(ToDto).ToPagedResultAsync(list, ct);
     }
 
     public Task<TrainingClassDto?> GetClassAsync(int id, CancellationToken ct = default) =>
@@ -38,11 +38,9 @@ public sealed class TrainingService(AppDbContext db) : ITrainingService
 
     public async Task<Result<TrainingClassDto>> CreateClassAsync(TrainingClassRequest request, CancellationToken ct = default)
     {
-        var course = await FindCourseAsync(request.CourseId, ct);
-        if (course is null)
-            return UnknownCourse(request.CourseId);
-
-        var cls = new TrainingClass { Course = course, ClassDate = request.ClassDate, Location = request.Location };
+        var cls = new TrainingClass();
+        if (await ApplyAsync(request, cls, ct) is { } error)
+            return error;
         db.TrainingClasses.Add(cls);
         await db.SaveChangesAsync(ct);
         return MapToDto(cls);
@@ -53,13 +51,8 @@ public sealed class TrainingService(AppDbContext db) : ITrainingService
         var cls = await db.TrainingClasses.FindAsync([id], ct);
         if (cls is null)
             return ClassNotFound;
-        var course = await FindCourseAsync(request.CourseId, ct);
-        if (course is null)
-            return UnknownCourse(request.CourseId);
-
-        cls.Course = course;
-        cls.ClassDate = request.ClassDate;
-        cls.Location = request.Location;
+        if (await ApplyAsync(request, cls, ct) is { } error)
+            return error;
         await db.SaveChangesAsync(ct);
         return MapToDto(cls);
     }
@@ -77,10 +70,21 @@ public sealed class TrainingService(AppDbContext db) : ITrainingService
         return await query.OrderBy(c => c.Id).Select(c => new CourseDto(c.Code, c.Title)).ToListAsync(ct);
     }
 
-    private Task<Course?> FindCourseAsync(string code, CancellationToken ct) =>
-        db.Courses.FirstOrDefaultAsync(c => c.Code == code, ct);
+    private async Task<Error?> ApplyAsync(TrainingClassRequest request, TrainingClass cls, CancellationToken ct)
+    {
+        var date = request.ClassDate!.Value;
+        if (date > DateOnly.FromDateTime(clock.GetLocalNow().DateTime))
+            return Error.Invalid("classDate", "Future dates are not allowed.");
 
-    private static Error UnknownCourse(string code) => Error.Invalid("courseId", $"Unknown course '{code}'");
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.Code == request.CourseId, ct);
+        if (course is null)
+            return Error.Invalid("courseId", $"Unknown course '{request.CourseId}'.");
+
+        cls.Course = course;
+        cls.ClassDate = date;
+        cls.Location = request.Location.Trim();
+        return null;
+    }
 
     private static readonly Expression<Func<TrainingClass, TrainingClassDto>> ToDto = c =>
         new TrainingClassDto(c.Id, c.Course.Title, c.Course.Code, c.ClassDate, c.Location);

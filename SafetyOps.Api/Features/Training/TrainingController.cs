@@ -3,44 +3,54 @@ using SafetyOps.Api.Features.Common;
 
 namespace SafetyOps.Api.Features.Training;
 
+/// <summary>Training classes and the course catalog.</summary>
+[Route("api/training")]
 public class TrainingController(ITrainingService training) : ApiControllerBase
 {
-    [HttpPost("/api/training/classes")]
-    public async Task<IActionResult> Create([FromBody] TrainingClassRequest request, CancellationToken ct)
+    /// <summary>Lists classes, newest first. Search matches course title and location.</summary>
+    [HttpGet("classes")]
+    [ProducesResponseType<PagedResult<TrainingClassDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<PagedResult<TrainingClassDto>> ListClasses([FromQuery] ListQuery query, CancellationToken ct) =>
+        await training.ListClassesAsync(query, ct);
+
+    /// <summary>Gets one class.</summary>
+    [HttpGet("classes/{id:int}", Name = "GetTrainingClass")]
+    [ProducesResponseType<TrainingClassDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TrainingClassDto>> GetClass(int id, CancellationToken ct) =>
+        await training.GetClassAsync(id, ct) is { } cls ? cls : Failure(TrainingService.ClassNotFound);
+
+    /// <summary>Creates a class.</summary>
+    [HttpPost("classes")]
+    [ProducesResponseType<TrainingClassDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<TrainingClassDto>> CreateClass(TrainingClassRequest request, CancellationToken ct)
     {
         var result = await training.CreateClassAsync(request, ct);
         return result.Error is { } error
             ? Failure(error)
-            : Ok(new { success = true, message = "Class created", id = result.Value!.Id });
+            : CreatedAtRoute("GetTrainingClass", new { id = result.Value!.Id }, result.Value);
     }
 
-    [HttpGet("/api/training/classes")]
-    public async Task<IActionResult> GetClasses([FromQuery] string? search, CancellationToken ct) =>
-        Ok(await training.SearchClassesAsync(search, ct));
+    /// <summary>Replaces a class's details.</summary>
+    [HttpPut("classes/{id:int}")]
+    [ProducesResponseType<TrainingClassDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TrainingClassDto>> UpdateClass(int id, TrainingClassRequest request, CancellationToken ct) =>
+        OkOrFailure(await training.UpdateClassAsync(id, request, ct));
 
-    [HttpGet("/api/training/classes/{id}")]
-    public async Task<IActionResult> GetClass(int id, CancellationToken ct) =>
-        await training.GetClassAsync(id, ct) is { } cls
-            ? Ok(cls)
-            : NotFound(new { message = "Class not found" });
+    /// <summary>Deletes a class.</summary>
+    [HttpDelete("classes/{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> DeleteClass(int id, CancellationToken ct) =>
+        NoContentOrFailure(await training.DeleteClassAsync(id, ct));
 
-    [HttpPut("/api/training/classes/{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] TrainingClassRequest request, CancellationToken ct)
-    {
-        var result = await training.UpdateClassAsync(id, request, ct);
-        return result.Error is { } error
-            ? Failure(error)
-            : Ok(new { success = true, message = "Class updated" });
-    }
-
-    [HttpDelete("/api/training/classes/{id}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
-    {
-        var result = await training.DeleteClassAsync(id, ct);
-        return result.Error is { } error ? Failure(error) : Ok(new { success = true });
-    }
-
-    [HttpGet("/api/training/courses")]
-    public async Task<IActionResult> GetCourses([FromQuery] string? search, CancellationToken ct) =>
-        Ok(await training.GetCoursesAsync(search, ct));
+    /// <summary>Lists the course catalog. Search matches the title.</summary>
+    [HttpGet("courses")]
+    [ProducesResponseType<IReadOnlyList<CourseDto>>(StatusCodes.Status200OK)]
+    public async Task<IReadOnlyList<CourseDto>> GetCourses([FromQuery] string? search, CancellationToken ct) =>
+        await training.GetCoursesAsync(search, ct);
 }
