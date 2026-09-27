@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SafetyOps.Api.Data;
 using SafetyOps.Api.Domain;
+using SafetyOps.Api.Features.Access;
 
 namespace SafetyOps.Api.Features.Auth;
 
@@ -13,7 +14,7 @@ public interface IAuthService
     /// <summary>Returns the user if the username and password match, otherwise null.</summary>
     Task<AppUser?> ValidateCredentialsAsync(string userName, string password, CancellationToken ct = default);
 
-    Task<CurrentUserDto?> GetUserAsync(int id, CancellationToken ct = default);
+    Task<UserOptionDto?> GetUserAsync(int id, CancellationToken ct = default);
 }
 
 public sealed class AuthService(AppDbContext db, IPasswordHasher<AppUser> hasher) : IAuthService
@@ -38,10 +39,10 @@ public sealed class AuthService(AppDbContext db, IPasswordHasher<AppUser> hasher
         return user;
     }
 
-    public Task<CurrentUserDto?> GetUserAsync(int id, CancellationToken ct = default) =>
+    public Task<UserOptionDto?> GetUserAsync(int id, CancellationToken ct = default) =>
         db.Users.AsNoTracking()
             .Where(u => u.Id == id)
-            .Select(u => new CurrentUserDto(u.Id, u.UserName, u.DisplayName))
+            .Select(u => new UserOptionDto(u.Id, u.UserName, u.DisplayName))
             .FirstOrDefaultAsync(ct);
 
     /// <summary>The cookie carries identity only. Permissions are looked up per request so changes apply immediately.</summary>

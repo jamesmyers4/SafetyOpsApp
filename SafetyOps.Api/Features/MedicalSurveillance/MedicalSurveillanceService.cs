@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using SafetyOps.Api.Data;
 using SafetyOps.Api.Domain;
+using SafetyOps.Api.Features.Access;
 using SafetyOps.Api.Features.Common;
 using SafetyOps.Api.Features.Personnel;
 
@@ -18,13 +19,14 @@ public interface IMedicalSurveillanceService
     Task<IReadOnlyList<WorkTaskDto>> GetWorkTasksAsync(CancellationToken ct = default);
 }
 
-public sealed class MedicalSurveillanceService(AppDbContext db) : IMedicalSurveillanceService
+/// <summary>Appointments, scoped by the org unit of the person evaluated. Work tasks are shared reference data.</summary>
+public sealed class MedicalSurveillanceService(AppDbContext db, IAccessScope scope) : IMedicalSurveillanceService
 {
     public static readonly ServiceError AppointmentNotFound = ServiceError.NotFound("Appointment not found.");
 
     public async Task<PagedResult<AppointmentDto>> ListAppointmentsAsync(ListQuery listQuery, CancellationToken ct = default)
     {
-        var query = db.MedicalAppointments.AsNoTracking();
+        var query = await VisibleAppointmentsAsync(ct);
         if (!string.IsNullOrWhiteSpace(listQuery.Search))
         {
             // A search term can be part of the person's name, an appointment date, or an appointment id.
@@ -40,8 +42,8 @@ public sealed class MedicalSurveillanceService(AppDbContext db) : IMedicalSurvei
         return await query.OrderByDescending(a => a.Id).Select(ToDto).ToPagedResultAsync(listQuery, ct);
     }
 
-    public Task<AppointmentDto?> GetAppointmentAsync(int id, CancellationToken ct = default) =>
-        db.MedicalAppointments.AsNoTracking().Where(a => a.Id == id).Select(ToDto).FirstOrDefaultAsync(ct);
+    public async Task<AppointmentDto?> GetAppointmentAsync(int id, CancellationToken ct = default) =>
+        await (await VisibleAppointmentsAsync(ct)).Where(a => a.Id == id).Select(ToDto).FirstOrDefaultAsync(ct);
 
     public async Task<Result<AppointmentDto>> CreateAppointmentAsync(AppointmentRequest request, CancellationToken ct = default)
     {
@@ -55,10 +57,10 @@ public sealed class MedicalSurveillanceService(AppDbContext db) : IMedicalSurvei
 
     public async Task<Result<AppointmentDto>> UpdateAppointmentAsync(int id, AppointmentRequest request, CancellationToken ct = default)
     {
-        var appointment = await db.MedicalAppointments.Include(a => a.Stressors).FirstOrDefaultAsync(a => a.Id == id, ct);
-        if (appointment is null)
-            return AppointmentNotFound;
-        if (await ApplyAsync(request, appointment, ct) is { } error)
+        var appointment = await db.MedicalAppointments.Include(a => a.Stressors).Include(a => a.Person).FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (await CheckWriteAsync(appointment, ct) is { } denied)
+            return denied;
+        if (await ApplyAsync(request, appointment!, ct) is { } error)
             return error;
         await db.SaveChangesAsync(ct);
         return (await GetAppointmentAsync(id, ct))!;
@@ -66,17 +68,18 @@ public sealed class MedicalSurveillanceService(AppDbContext db) : IMedicalSurvei
 
     public async Task<Result> DeleteAppointmentAsync(int id, CancellationToken ct = default)
     {
-        var appointment = await db.MedicalAppointments.Include(a => a.Stressors).FirstOrDefaultAsync(a => a.Id == id, ct);
-        if (appointment is null)
-            return AppointmentNotFound;
-        db.MedicalAppointments.Remove(appointment);
+        var appointment = await db.MedicalAppointments.Include(a => a.Stressors).Include(a => a.Person).FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (await CheckWriteAsync(appointment, ct) is { } denied)
+            return denied;
+        db.MedicalAppointments.Remove(appointment!);
         await db.SaveChangesAsync(ct);
         return Result.Success;
     }
 
     public async Task<IReadOnlyList<PersonOptionDto>> GetPersonOptionsAsync(string? search, CancellationToken ct = default)
     {
-        var query = db.People.AsNoTracking();
+        var readable = (await scope.GetAsync(ct)).UnitsWith(Role.Viewer);
+        var query = db.People.AsNoTracking().Where(p => readable.Contains(p.OrgUnitId));
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(p => EF.Functions.Like(p.FirstName + " " + p.LastName, SqlLike.Contains(search), SqlLike.Escape));
         return await query
@@ -98,8 +101,13 @@ public sealed class MedicalSurveillanceService(AppDbContext db) : IMedicalSurvei
     // Resolves the person and stressor codes, then copies the request onto the appointment.
     private async Task<ServiceError?> ApplyAsync(AppointmentRequest request, MedicalAppointment appointment, CancellationToken ct)
     {
-        if (!await db.People.AnyAsync(p => p.Id == request.PersonId, ct))
+        // The person evaluated decides which org unit the appointment belongs to.
+        var access = await scope.GetAsync(ct);
+        var personUnit = await db.People.Where(p => p.Id == request.PersonId).Select(p => (int?)p.OrgUnitId).FirstOrDefaultAsync(ct);
+        if (personUnit is not { } unit || !access.CanRead(unit))
             return ServiceError.Invalid("personId", $"Unknown person {request.PersonId}.");
+        if (!access.CanWrite(unit))
+            return ServiceError.Forbidden("You can't record appointments for people in this org unit.");
 
         var duplicate = request.Stressors.GroupBy(s => s.StressorId).FirstOrDefault(g => g.Count() > 1);
         if (duplicate is not null)
@@ -116,6 +124,20 @@ public sealed class MedicalSurveillanceService(AppDbContext db) : IMedicalSurvei
         foreach (var s in request.Stressors)
             appointment.Stressors.Add(new AppointmentStressor { StressorId = stressorIds[s.StressorId], ExamType = s.ExamType });
         return null;
+    }
+
+    private async Task<ServiceError?> CheckWriteAsync(MedicalAppointment? appointment, CancellationToken ct)
+    {
+        var access = await scope.GetAsync(ct);
+        if (appointment is null || !access.CanRead(appointment.Person.OrgUnitId))
+            return AppointmentNotFound;
+        return access.CanWrite(appointment.Person.OrgUnitId) ? null : AccessRules.ReadOnly;
+    }
+
+    private async Task<IQueryable<MedicalAppointment>> VisibleAppointmentsAsync(CancellationToken ct)
+    {
+        var readable = (await scope.GetAsync(ct)).UnitsWith(Role.Viewer);
+        return db.MedicalAppointments.AsNoTracking().Where(a => readable.Contains(a.Person.OrgUnitId));
     }
 
     private static readonly Expression<Func<MedicalAppointment, AppointmentDto>> ToDto = a => new AppointmentDto(

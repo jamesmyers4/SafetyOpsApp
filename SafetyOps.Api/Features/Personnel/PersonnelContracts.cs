@@ -12,7 +12,9 @@ public sealed record PersonDto(
     string Department,
     string EmployeeCategory,
     string Subscription,
-    string EmployeeNumber);
+    string EmployeeNumber,
+    int OrgUnitId,
+    string OrgUnitName);
 
 /// <summary>Create/update body. Has no <c>Id</c>, so clients can't choose or overwrite keys.</summary>
 public sealed record PersonRequest
@@ -40,6 +42,10 @@ public sealed record PersonRequest
 
     [StringLength(20), RegularExpression("^[0-9]*$", ErrorMessage = "Employee number must contain digits only.")]
     public string EmployeeNumber { get; init; } = string.Empty;
+
+    /// <summary>Owning org unit. On create defaults to the highest unit you can write to; on update defaults to the current one.</summary>
+    [Range(1, int.MaxValue)]
+    public int? OrgUnitId { get; init; }
 }
 
 /// <summary>A person as a pick-list option: id and full name.</summary>

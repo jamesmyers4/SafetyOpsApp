@@ -14,7 +14,9 @@ public sealed record IncidentDto(
     string Description,
     int ReportedById,
     string ReportedByName,
-    IncidentStatus Status);
+    IncidentStatus Status,
+    int OrgUnitId,
+    string OrgUnitName);
 
 /// <summary>Create/update body.</summary>
 public sealed record IncidentRequest
@@ -42,6 +44,10 @@ public sealed record IncidentRequest
     /// <summary>Defaults to Open on create.</summary>
     [EnumDataType(typeof(IncidentStatus))]
     public IncidentStatus? Status { get; init; }
+
+    /// <summary>Org unit (site) where it happened. On create defaults to the highest unit you can write to; on update to the current one.</summary>
+    [Range(1, int.MaxValue)]
+    public int? OrgUnitId { get; init; }
 }
 
 /// <summary>Query for the incident list: search/paging plus optional filters.</summary>
