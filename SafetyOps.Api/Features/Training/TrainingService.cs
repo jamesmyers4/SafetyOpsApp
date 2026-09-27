@@ -8,7 +8,7 @@ namespace SafetyOps.Api.Features.Training;
 
 public interface ITrainingService
 {
-    Task<PagedResult<TrainingClassDto>> ListClassesAsync(ListQuery query, CancellationToken ct = default);
+    Task<PagedResult<TrainingClassDto>> ListClassesAsync(ListQuery listQuery, CancellationToken ct = default);
     Task<TrainingClassDto?> GetClassAsync(int id, CancellationToken ct = default);
     Task<Result<TrainingClassDto>> CreateClassAsync(TrainingClassRequest request, CancellationToken ct = default);
     Task<Result<TrainingClassDto>> UpdateClassAsync(int id, TrainingClassRequest request, CancellationToken ct = default);
@@ -18,19 +18,19 @@ public interface ITrainingService
 
 public sealed class TrainingService(AppDbContext db, TimeProvider clock) : ITrainingService
 {
-    public static readonly Error ClassNotFound = Error.NotFound("Class not found.");
+    public static readonly ServiceError ClassNotFound = ServiceError.NotFound("Class not found.");
 
-    public async Task<PagedResult<TrainingClassDto>> ListClassesAsync(ListQuery list, CancellationToken ct = default)
+    public async Task<PagedResult<TrainingClassDto>> ListClassesAsync(ListQuery listQuery, CancellationToken ct = default)
     {
         var query = db.TrainingClasses.AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(list.Search))
+        if (!string.IsNullOrWhiteSpace(listQuery.Search))
         {
-            var pattern = SqlLike.Contains(list.Search);
+            var pattern = SqlLike.Contains(listQuery.Search);
             query = query.Where(c =>
                 EF.Functions.Like(c.Course.Title, pattern, SqlLike.Escape) ||
                 EF.Functions.Like(c.Location, pattern, SqlLike.Escape));
         }
-        return await query.OrderByDescending(c => c.Id).Select(ToDto).ToPagedResultAsync(list, ct);
+        return await query.OrderByDescending(c => c.Id).Select(ToDto).ToPagedResultAsync(listQuery, ct);
     }
 
     public Task<TrainingClassDto?> GetClassAsync(int id, CancellationToken ct = default) =>
@@ -70,15 +70,15 @@ public sealed class TrainingService(AppDbContext db, TimeProvider clock) : ITrai
         return await query.OrderBy(c => c.Id).Select(c => new CourseDto(c.Code, c.Title)).ToListAsync(ct);
     }
 
-    private async Task<Error?> ApplyAsync(TrainingClassRequest request, TrainingClass cls, CancellationToken ct)
+    private async Task<ServiceError?> ApplyAsync(TrainingClassRequest request, TrainingClass cls, CancellationToken ct)
     {
         var date = request.ClassDate!.Value;
         if (date > DateOnly.FromDateTime(clock.GetLocalNow().DateTime))
-            return Error.Invalid("classDate", "Future dates are not allowed.");
+            return ServiceError.Invalid("classDate", "Future dates are not allowed.");
 
         var course = await db.Courses.FirstOrDefaultAsync(c => c.Code == request.CourseId, ct);
         if (course is null)
-            return Error.Invalid("courseId", $"Unknown course '{request.CourseId}'.");
+            return ServiceError.Invalid("courseId", $"Unknown course '{request.CourseId}'.");
 
         cls.Course = course;
         cls.ClassDate = date;

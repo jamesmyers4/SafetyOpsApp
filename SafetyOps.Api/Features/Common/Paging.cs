@@ -30,10 +30,10 @@ public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSi
 public static class PagingExtensions
 {
     /// <summary>Counts, then fetches one page. The query must already be ordered.</summary>
-    public static async Task<PagedResult<T>> ToPagedResultAsync<T>(this IQueryable<T> query, ListQuery list, CancellationToken ct)
+    public static async Task<PagedResult<T>> ToPagedResultAsync<T>(this IQueryable<T> query, ListQuery listQuery, CancellationToken ct)
     {
         var total = await query.CountAsync(ct);
-        var items = await query.Skip((list.Page - 1) * list.PageSize).Take(list.PageSize).ToListAsync(ct);
-        return new PagedResult<T>(items, list.Page, list.PageSize, total);
+        var items = await query.Skip((listQuery.Page - 1) * listQuery.PageSize).Take(listQuery.PageSize).ToListAsync(ct);
+        return new PagedResult<T>(items, listQuery.Page, listQuery.PageSize, total);
     }
 }

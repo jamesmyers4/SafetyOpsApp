@@ -19,7 +19,7 @@ public class PersonnelController(IPersonnelService personnel) : ApiControllerBas
     [ProducesResponseType<PersonDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PersonDto>> Get(int id, CancellationToken ct) =>
-        await personnel.GetAsync(id, ct) is { } person ? person : Failure(Error.NotFound("Person not found."));
+        await personnel.GetAsync(id, ct) is { } person ? person : Failure(ServiceError.NotFound("Person not found."));
 
     /// <summary>Creates a person.</summary>
     [HttpPost]

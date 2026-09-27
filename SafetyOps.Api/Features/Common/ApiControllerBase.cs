@@ -6,10 +6,10 @@ namespace SafetyOps.Api.Features.Common;
 public abstract class ApiControllerBase : ControllerBase
 {
     /// <summary>
-    /// Maps a service <see cref="Error"/> to RFC 9457 problem details: 404 and 409 as
+    /// Maps a service <see cref="ServiceError"/> to RFC 9457 problem details: 404 and 409 as
     /// <see cref="ProblemDetails"/>, invalid input as <see cref="ValidationProblemDetails"/>.
     /// </summary>
-    protected ActionResult Failure(Error error)
+    protected ActionResult Failure(ServiceError error)
     {
         switch (error.Kind)
         {

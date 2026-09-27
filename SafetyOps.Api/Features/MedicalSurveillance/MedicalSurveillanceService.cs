@@ -8,7 +8,7 @@ namespace SafetyOps.Api.Features.MedicalSurveillance;
 
 public interface IMedicalSurveillanceService
 {
-    Task<PagedResult<AppointmentDto>> ListAppointmentsAsync(ListQuery query, CancellationToken ct = default);
+    Task<PagedResult<AppointmentDto>> ListAppointmentsAsync(ListQuery listQuery, CancellationToken ct = default);
     Task<AppointmentDto?> GetAppointmentAsync(int id, CancellationToken ct = default);
     Task<Result<AppointmentDto>> CreateAppointmentAsync(AppointmentRequest request, CancellationToken ct = default);
     Task<Result<AppointmentDto>> UpdateAppointmentAsync(int id, AppointmentRequest request, CancellationToken ct = default);
@@ -19,15 +19,15 @@ public interface IMedicalSurveillanceService
 
 public sealed class MedicalSurveillanceService(AppDbContext db) : IMedicalSurveillanceService
 {
-    public static readonly Error AppointmentNotFound = Error.NotFound("Appointment not found.");
+    public static readonly ServiceError AppointmentNotFound = ServiceError.NotFound("Appointment not found.");
 
-    public async Task<PagedResult<AppointmentDto>> ListAppointmentsAsync(ListQuery list, CancellationToken ct = default)
+    public async Task<PagedResult<AppointmentDto>> ListAppointmentsAsync(ListQuery listQuery, CancellationToken ct = default)
     {
         var query = db.MedicalAppointments.AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(list.Search))
+        if (!string.IsNullOrWhiteSpace(listQuery.Search))
         {
             // A search term can be part of the person's name, an appointment date, or an appointment id.
-            var term = list.Search.Trim();
+            var term = listQuery.Search.Trim();
             var pattern = SqlLike.Contains(term);
             var hasDate = DateFormats.TryParse(term, out var date);
             var hasId = int.TryParse(term, out var id);
@@ -36,7 +36,7 @@ public sealed class MedicalSurveillanceService(AppDbContext db) : IMedicalSurvei
                 (hasDate && a.Date == date) ||
                 (hasId && a.Id == id));
         }
-        return await query.OrderByDescending(a => a.Id).Select(ToDto).ToPagedResultAsync(list, ct);
+        return await query.OrderByDescending(a => a.Id).Select(ToDto).ToPagedResultAsync(listQuery, ct);
     }
 
     public Task<AppointmentDto?> GetAppointmentAsync(int id, CancellationToken ct = default) =>
@@ -95,19 +95,19 @@ public sealed class MedicalSurveillanceService(AppDbContext db) : IMedicalSurvei
             .ToListAsync(ct);
 
     // Resolves the person and stressor codes, then copies the request onto the appointment.
-    private async Task<Error?> ApplyAsync(AppointmentRequest request, MedicalAppointment appointment, CancellationToken ct)
+    private async Task<ServiceError?> ApplyAsync(AppointmentRequest request, MedicalAppointment appointment, CancellationToken ct)
     {
         if (!await db.People.AnyAsync(p => p.Id == request.PersonId, ct))
-            return Error.Invalid("personId", $"Unknown person {request.PersonId}.");
+            return ServiceError.Invalid("personId", $"Unknown person {request.PersonId}.");
 
         var duplicate = request.Stressors.GroupBy(s => s.StressorId).FirstOrDefault(g => g.Count() > 1);
         if (duplicate is not null)
-            return Error.Invalid("stressors", $"Stressor '{duplicate.Key}' is listed more than once.");
+            return ServiceError.Invalid("stressors", $"Stressor '{duplicate.Key}' is listed more than once.");
 
         var codes = request.Stressors.Select(s => s.StressorId).Distinct().ToList();
         var stressorIds = await db.Stressors.Where(s => codes.Contains(s.Code)).ToDictionaryAsync(s => s.Code, s => s.Id, ct);
         if (codes.FirstOrDefault(c => !stressorIds.ContainsKey(c)) is { } unknown)
-            return Error.Invalid("stressors", $"Unknown stressor '{unknown}'.");
+            return ServiceError.Invalid("stressors", $"Unknown stressor '{unknown}'.");
 
         appointment.Date = request.Date!.Value;
         appointment.PersonId = request.PersonId;

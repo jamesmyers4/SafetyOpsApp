@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using SafetyOps.Api.Features.Common;
@@ -8,8 +9,8 @@ namespace SafetyOps.Api.Tests.Features;
 
 public class TrainingApiTests : ApiTestBase
 {
-    private object ValidRequest(string courseId = "PPE-001", string? classDate = null, string location = "Building 1 Room 2") =>
-        new { courseId, classDate = classDate ?? Today.AddDays(-1).ToString("yyyy-MM-dd"), location };
+    private static object ValidRequest(string courseId = "PPE-001", string? classDate = null, string location = "Building 1 Room 2") =>
+        new { courseId, classDate = classDate ?? Today.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), location };
 
     [Test]
     public async Task ListClasses_returns_newest_first_with_course_details()
@@ -62,7 +63,7 @@ public class TrainingApiTests : ApiTestBase
     [Test]
     public async Task CreateClass_allows_today()
     {
-        var response = await Client.PostAsJsonAsync("/api/training/classes", ValidRequest(classDate: Today.ToString("yyyy-MM-dd")), Json);
+        var response = await Client.PostAsJsonAsync("/api/training/classes", ValidRequest(classDate: Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)), Json);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
     }
@@ -70,7 +71,7 @@ public class TrainingApiTests : ApiTestBase
     [Test]
     public async Task CreateClass_rejects_future_dates_using_the_app_clock()
     {
-        var response = await Client.PostAsJsonAsync("/api/training/classes", ValidRequest(classDate: Today.AddDays(1).ToString("yyyy-MM-dd")), Json);
+        var response = await Client.PostAsJsonAsync("/api/training/classes", ValidRequest(classDate: Today.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)), Json);
 
         var problem = await ReadValidationProblemAsync(response);
         Assert.That(problem.Errors["classDate"], Is.EqualTo(new[] { "Future dates are not allowed." }));

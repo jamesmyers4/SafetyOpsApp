@@ -41,7 +41,7 @@ public class ServiceTests
         _clock.Advance(TimeSpan.FromHours(1)); // now 2026-06-16 00:30
         var onTheDay = await service.CreateClassAsync(request);
 
-        Assert.That(tooEarly.Error, Is.EqualTo(Error.Invalid("classDate", "Future dates are not allowed.")));
+        Assert.That(tooEarly.Error, Is.EqualTo(ServiceError.Invalid("classDate", "Future dates are not allowed.")));
         Assert.That(onTheDay.Error, Is.Null);
         Assert.That(onTheDay.Value!.ClassDate, Is.EqualTo(new DateOnly(2026, 6, 16)));
     }
