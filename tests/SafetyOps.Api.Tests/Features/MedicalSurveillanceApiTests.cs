@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using SafetyOps.Api.Features.Common;
 using SafetyOps.Api.Features.MedicalSurveillance;
+using SafetyOps.Api.Features.Personnel;
 using SafetyOps.Api.Tests.Infrastructure;
 
 namespace SafetyOps.Api.Tests.Features;

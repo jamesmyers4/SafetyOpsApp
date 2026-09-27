@@ -41,3 +41,6 @@ public sealed record PersonRequest
     [StringLength(20), RegularExpression("^[0-9]*$", ErrorMessage = "Employee number must contain digits only.")]
     public string EmployeeNumber { get; init; } = string.Empty;
 }
+
+/// <summary>A person as a pick-list option: id and full name.</summary>
+public sealed record PersonOptionDto(int Id, string Name);

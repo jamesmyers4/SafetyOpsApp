@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SafetyOps.Api.Features.Common;
+using SafetyOps.Api.Features.Personnel;
 
 namespace SafetyOps.Api.Features.MedicalSurveillance;
 
