@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API (build and test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Restore
+        run: dotnet restore SafetyOps.slnx
+      - name: Build
+        run: dotnet build SafetyOps.slnx --no-restore --configuration Release
+
+  web:
+    name: Web (lint and build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: safetyops-web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: safetyops-web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
