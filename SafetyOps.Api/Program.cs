@@ -1,14 +1,22 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SafetyOps.Api.Data;
+using SafetyOps.Api.Features.Common;
+using SafetyOps.Api.Features.MedicalSurveillance;
+using SafetyOps.Api.Features.Personnel;
+using SafetyOps.Api.Features.Training;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new WireDateOnlyConverter()));
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(ResolveSqliteConnectionString(builder.Configuration, builder.Environment)));
+builder.Services.AddScoped<IPersonnelService, PersonnelService>();
+builder.Services.AddScoped<ITrainingService, TrainingService>();
+builder.Services.AddScoped<IMedicalSurveillanceService, MedicalSurveillanceService>();
 
 var app = builder.Build();
 
