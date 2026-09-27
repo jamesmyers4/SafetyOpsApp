@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
+using SafetyOps.Api.Data;
+using SafetyOps.Api.Domain;
 
 namespace SafetyOps.Api.Controllers
 {
@@ -17,80 +19,81 @@ namespace SafetyOps.Api.Controllers
     }
 
     [ApiController]
-    public class PersonnelController : ControllerBase
+    public class PersonnelController(AppDbContext db) : ControllerBase
     {
-        private static int _nextId = 1;
-        private static readonly ConcurrentDictionary<int, UserRecord> _users = new();
-
-        static PersonnelController()
-        {
-            var seed = new[]
-            {
-                new UserRecord { FirstName = "John",    LastName = "Smith",    MiddleName = "A", Gender = "Male",   Department = "Engineering",     EmployeeCategory = "Full Time",  Subscription = "Standard", EmployeeNumber = "1000001" },
-                new UserRecord { FirstName = "Jane",    LastName = "Smith",    MiddleName = "B", Gender = "Female", Department = "Operations",      EmployeeCategory = "Full Time",  Subscription = "Basic",    EmployeeNumber = "1000002" },
-                new UserRecord { FirstName = "Robert",  LastName = "Smith",    MiddleName = "C", Gender = "Male",   Department = "Safety",          EmployeeCategory = "Full Time",  Subscription = "Premium",  EmployeeNumber = "1000003" },
-                new UserRecord { FirstName = "Mary",    LastName = "Smith",    MiddleName = "D", Gender = "Female", Department = "Finance",         EmployeeCategory = "Contractor", Subscription = "Standard", EmployeeNumber = "1000004" },
-                new UserRecord { FirstName = "John",    LastName = "Doe",      MiddleName = "E", Gender = "Male",   Department = "Finance",         EmployeeCategory = "Full Time",  Subscription = "Standard", EmployeeNumber = "1000005" },
-                new UserRecord { FirstName = "John",    LastName = "Johnson",  MiddleName = "F", Gender = "Male",   Department = "Human Resources", EmployeeCategory = "Part Time",  Subscription = "Basic",    EmployeeNumber = "1000006" },
-                new UserRecord { FirstName = "John",    LastName = "Williams", MiddleName = "G", Gender = "Male",   Department = "Engineering",     EmployeeCategory = "Full Time",  Subscription = "Premium",  EmployeeNumber = "1000007" },
-                new UserRecord { FirstName = "Alice",   LastName = "Anderson", MiddleName = "H", Gender = "Female", Department = "Operations",      EmployeeCategory = "Full Time",  Subscription = "Premium",  EmployeeNumber = "1000008" },
-                new UserRecord { FirstName = "Carol",   LastName = "Davis",    MiddleName = "I", Gender = "Female", Department = "Finance",         EmployeeCategory = "Part Time",  Subscription = "Standard", EmployeeNumber = "1000009" },
-                new UserRecord { FirstName = "David",   LastName = "Wilson",   MiddleName = "J", Gender = "Male",   Department = "Human Resources", EmployeeCategory = "Full Time",  Subscription = "Premium",  EmployeeNumber = "1000010" },
-            };
-            foreach (var u in seed)
-            {
-                u.Id = _nextId++;
-                _users[u.Id] = u;
-            }
-        }
-
         [HttpGet("/api/personnel/users")]
-        public IActionResult GetUsers([FromQuery] string? search = null)
+        public async Task<IActionResult> GetUsers([FromQuery] string? search = null)
         {
-            var users = _users.Values.AsEnumerable();
+            var query = db.People.AsNoTracking();
             if (!string.IsNullOrWhiteSpace(search))
             {
-                users = users.Where(u =>
-                    u.FirstName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    u.LastName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    u.MiddleName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    u.Department.Contains(search, StringComparison.OrdinalIgnoreCase));
+                var pattern = SqlLike.Contains(search);
+                query = query.Where(p =>
+                    EF.Functions.Like(p.FirstName, pattern, SqlLike.Escape) ||
+                    EF.Functions.Like(p.LastName, pattern, SqlLike.Escape) ||
+                    EF.Functions.Like(p.MiddleName, pattern, SqlLike.Escape) ||
+                    EF.Functions.Like(p.Department, pattern, SqlLike.Escape));
             }
-            return Ok(users.OrderBy(u => u.LastName).ThenBy(u => u.FirstName).ToList());
+            var users = await query
+                .OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
+                .Select(p => ToRecord(p))
+                .ToListAsync();
+            return Ok(users);
         }
 
         [HttpPost("/api/personnel/create")]
-        public IActionResult Create([FromBody] UserRecord user)
+        public async Task<IActionResult> Create([FromBody] UserRecord user)
         {
-            user.Id = _nextId++;
-            _users[user.Id] = user;
-            return Ok(new { success = true, message = "User created successfully", id = user.Id });
+            var person = new Person();
+            Apply(user, person);
+            db.People.Add(person);
+            await db.SaveChangesAsync();
+            return Ok(new { success = true, message = "User created successfully", id = person.Id });
         }
 
         [HttpGet("/api/personnel/users/{id}")]
-        public IActionResult GetUser(int id)
+        public async Task<IActionResult> GetUser(int id)
         {
-            return _users.TryGetValue(id, out var user)
-                ? Ok(user)
-                : NotFound(new { message = "User not found" });
+            var person = await db.People.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+            return person is null
+                ? NotFound(new { message = "User not found" })
+                : Ok(ToRecord(person));
         }
 
         [HttpPut("/api/personnel/users/{id}")]
-        public IActionResult Update(int id, [FromBody] UserRecord user)
+        public async Task<IActionResult> Update(int id, [FromBody] UserRecord user)
         {
-            if (!_users.ContainsKey(id))
+            var person = await db.People.FindAsync(id);
+            if (person is null)
                 return NotFound(new { message = "User not found" });
-            user.Id = id;
-            _users[id] = user;
+            Apply(user, person);
+            await db.SaveChangesAsync();
             return Ok(new { success = true, message = "User updated successfully" });
         }
 
         [HttpDelete("/api/personnel/users/{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            return _users.TryRemove(id, out _)
-                ? Ok(new { success = true })
-                : NotFound(new { message = "User not found" });
+            var person = await db.People.FindAsync(id);
+            if (person is null)
+                return NotFound(new { message = "User not found" });
+            if (await db.MedicalAppointments.AnyAsync(a => a.PersonId == id))
+                return Conflict(new { message = "User has medical surveillance appointments and cannot be deleted" });
+            db.People.Remove(person);
+            await db.SaveChangesAsync();
+            return Ok(new { success = true });
+        }
+
+        private static UserRecord ToRecord(Person p) => new()
+        {
+            Id = p.Id, FirstName = p.FirstName, LastName = p.LastName, MiddleName = p.MiddleName, Gender = p.Gender,
+            Department = p.Department, EmployeeCategory = p.EmployeeCategory, Subscription = p.Subscription, EmployeeNumber = p.EmployeeNumber,
+        };
+
+        private static void Apply(UserRecord r, Person p)
+        {
+            p.FirstName = r.FirstName; p.LastName = r.LastName; p.MiddleName = r.MiddleName; p.Gender = r.Gender;
+            p.Department = r.Department; p.EmployeeCategory = r.EmployeeCategory; p.Subscription = r.Subscription; p.EmployeeNumber = r.EmployeeNumber;
         }
     }
 }
