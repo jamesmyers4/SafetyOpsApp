@@ -7,10 +7,10 @@ using SafetyOps.Api.Data;
 using SafetyOps.Api.Domain;
 using SafetyOps.Api.Features.Auth;
 using SafetyOps.Api.Features.Common;
-using Scalar.AspNetCore;
 using SafetyOps.Api.Features.MedicalSurveillance;
 using SafetyOps.Api.Features.Personnel;
 using SafetyOps.Api.Features.Training;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
