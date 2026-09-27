@@ -1,8 +1,8 @@
 // Relative URLs: the Vite dev server proxies API calls to ASP.NET Core, and in
 // production the API serves the built SPA from the same origin.
 import type {
-    Appointment, AppointmentInput, Course, CurrentUser, Paged, Person, PersonInput, PersonOption,
-    TrainingClass, TrainingClassInput, WorkTask,
+    Appointment, AppointmentInput, Course, CurrentUser, Incident, IncidentCategory, IncidentInput, IncidentStatus,
+    Paged, Person, PersonInput, PersonOption, TrainingClass, TrainingClassInput, WorkTask,
 } from '../types/api';
 
 /** An error response from the API, with the problem-details message flattened for display. */
@@ -71,6 +71,8 @@ export function fromIsoDate(date: string): string {
 }
 
 const json = (body: unknown) => JSON.stringify(body);
+// The API sends incident times with seconds; datetime-local inputs use minutes.
+const fromApiIncident = (i: Incident): Incident => ({ ...i, occurredAt: i.occurredAt.slice(0, 16) });
 const fromApiClass = (c: TrainingClass): TrainingClass => ({ ...c, classDate: fromIsoDate(c.classDate) });
 const toApiClass = (c: TrainingClassInput) => ({ ...c, classDate: toIsoDate(c.classDate) });
 const fromApiAppointment = (a: Appointment): Appointment => ({ ...a, date: fromIsoDate(a.date) });
@@ -148,4 +150,25 @@ export const api = {
 
     getWorkTasks: () =>
         request<WorkTask[]>('/api/medical-surveillance/work-tasks'),
+
+    // Incident reports
+    listIncidents: async (params: { search?: string; status?: IncidentStatus | ''; category?: IncidentCategory | ''; page?: number; pageSize?: number }) => {
+        const page = await request<Paged<Incident>>(`/api/incidents${query(params)}`);
+        return { ...page, items: page.items.map(fromApiIncident) };
+    },
+
+    getIncident: async (id: number) =>
+        fromApiIncident(await request<Incident>(`/api/incidents/${id}`)),
+
+    createIncident: async (data: IncidentInput) =>
+        fromApiIncident(await request<Incident>('/api/incidents', { method: 'POST', body: json(data) })),
+
+    updateIncident: async (id: number, data: IncidentInput) =>
+        fromApiIncident(await request<Incident>(`/api/incidents/${id}`, { method: 'PUT', body: json(data) })),
+
+    deleteIncident: (id: number) =>
+        request<void>(`/api/incidents/${id}`, { method: 'DELETE' }),
+
+    lookupPeople: (search?: string) =>
+        request<PersonOption[]>(`/api/personnel/lookup${query({ search })}`),
 };

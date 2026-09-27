@@ -77,3 +77,33 @@ export interface WorkTask {
     stressors: { stressorId: string; stressorName: string }[];
     examTypeOptions: string[];
 }
+
+export const INCIDENT_CATEGORIES = {
+    Fire: 'Fire',
+    Injury: 'Injury',
+    NearMiss: 'Near Miss',
+    PropertyDamage: 'Property Damage',
+    Environmental: 'Environmental',
+    Other: 'Other',
+} as const;
+export type IncidentCategory = keyof typeof INCIDENT_CATEGORIES;
+
+export const INCIDENT_SEVERITIES = { Low: 'Low', Medium: 'Medium', High: 'High', Critical: 'Critical' } as const;
+export type IncidentSeverity = keyof typeof INCIDENT_SEVERITIES;
+
+export const INCIDENT_STATUSES = { Open: 'Open', UnderReview: 'Under Review', Closed: 'Closed' } as const;
+export type IncidentStatus = keyof typeof INCIDENT_STATUSES;
+
+export interface Incident {
+    id: number;
+    /** Local time at the site, `YYYY-MM-DDTHH:mm` (the format of a datetime-local input). */
+    occurredAt: string;
+    location: string;
+    category: IncidentCategory;
+    severity: IncidentSeverity;
+    description: string;
+    reportedById: number;
+    reportedByName: string;
+    status: IncidentStatus;
+}
+export type IncidentInput = Omit<Incident, 'id' | 'reportedByName'>;
