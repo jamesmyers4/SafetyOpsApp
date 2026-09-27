@@ -18,6 +18,7 @@ export default function TrainingShellPage() {
     const [pending, setPending] = useState<PendingData | null>(null);
     const [showSave, setShowSave] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
+    const [errorMsg, setErrorMsg] = useState('');
 
     const navLink: React.CSSProperties = { color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' };
 
@@ -60,10 +61,10 @@ export default function TrainingShellPage() {
             setShowSave(false);
             return;
         }
+        setErrorMsg('');
         try {
             if (pending.isUpdate && pending.id) {
                 await api.updateTrainingClass(pending.id, {
-                    courseTitle: pending.courseTitle,
                     courseId: pending.courseId,
                     classDate: pending.classDate,
                     location: pending.location,
@@ -73,15 +74,14 @@ export default function TrainingShellPage() {
                 setPending(null);
             } else {
                 const result = await api.createTrainingClass({
-                    courseTitle: pending.courseTitle,
                     courseId: pending.courseId,
                     classDate: pending.classDate,
                     location: pending.location,
                 });
                 navigate(`/training/classes/${result.id}`);
             }
-        } catch (e) {
-            console.error(e);
+        } catch (e: unknown) {
+            setErrorMsg(e instanceof Error ? e.message : 'Save failed');
         }
     }
 
@@ -107,6 +107,12 @@ export default function TrainingShellPage() {
                         Search / Edit Classes
                     </a>
                 </div>
+
+                {errorMsg && (
+                    <div style={{ background: '#f8d7da', color: '#721c24', padding: '12px 20px', borderRadius: '4px', marginBottom: '12px', fontSize: '14px' }}>
+                        {errorMsg}
+                    </div>
+                )}
 
                 {successMsg && (
                     <div style={{ background: '#d4edda', color: '#155724', padding: '12px 20px', borderRadius: '4px', marginBottom: '12px', fontSize: '14px' }}>

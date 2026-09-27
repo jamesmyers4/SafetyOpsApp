@@ -3,40 +3,49 @@ using SafetyOps.Api.Features.Common;
 
 namespace SafetyOps.Api.Features.Personnel;
 
+/// <summary>Personnel records.</summary>
+[Route("api/personnel")]
 public class PersonnelController(IPersonnelService personnel) : ApiControllerBase
 {
-    [HttpGet("/api/personnel/users")]
-    public async Task<IActionResult> GetUsers([FromQuery] string? search, CancellationToken ct) =>
-        Ok(await personnel.SearchAsync(search, ct));
+    /// <summary>Lists personnel, sorted by last then first name. Search matches first, middle, and last name and department.</summary>
+    [HttpGet]
+    [ProducesResponseType<PagedResult<PersonDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<PagedResult<PersonDto>> List([FromQuery] ListQuery query, CancellationToken ct) =>
+        await personnel.ListAsync(query, ct);
 
-    [HttpPost("/api/personnel/create")]
-    public async Task<IActionResult> Create([FromBody] PersonRequest request, CancellationToken ct)
+    /// <summary>Gets one person.</summary>
+    [HttpGet("{id:int}", Name = "GetPerson")]
+    [ProducesResponseType<PersonDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PersonDto>> Get(int id, CancellationToken ct) =>
+        await personnel.GetAsync(id, ct) is { } person ? person : Failure(Error.NotFound("Person not found."));
+
+    /// <summary>Creates a person.</summary>
+    [HttpPost]
+    [ProducesResponseType<PersonDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PersonDto>> Create(PersonRequest request, CancellationToken ct)
     {
         var result = await personnel.CreateAsync(request, ct);
         return result.Error is { } error
             ? Failure(error)
-            : Ok(new { success = true, message = "User created successfully", id = result.Value!.Id });
+            : CreatedAtRoute("GetPerson", new { id = result.Value!.Id }, result.Value);
     }
 
-    [HttpGet("/api/personnel/users/{id}")]
-    public async Task<IActionResult> GetUser(int id, CancellationToken ct) =>
-        await personnel.GetAsync(id, ct) is { } person
-            ? Ok(person)
-            : NotFound(new { message = "User not found" });
+    /// <summary>Replaces a person's details.</summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType<PersonDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PersonDto>> Update(int id, PersonRequest request, CancellationToken ct) =>
+        OkOrFailure(await personnel.UpdateAsync(id, request, ct));
 
-    [HttpPut("/api/personnel/users/{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] PersonRequest request, CancellationToken ct)
-    {
-        var result = await personnel.UpdateAsync(id, request, ct);
-        return result.Error is { } error
-            ? Failure(error)
-            : Ok(new { success = true, message = "User updated successfully" });
-    }
-
-    [HttpDelete("/api/personnel/users/{id}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
-    {
-        var result = await personnel.DeleteAsync(id, ct);
-        return result.Error is { } error ? Failure(error) : Ok(new { success = true });
-    }
+    /// <summary>Deletes a person. Fails with 409 if the person has medical surveillance appointments.</summary>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult> Delete(int id, CancellationToken ct) =>
+        NoContentOrFailure(await personnel.DeleteAsync(id, ct));
 }

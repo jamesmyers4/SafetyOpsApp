@@ -1,15 +1,24 @@
+using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using SafetyOps.Api.Data;
 using SafetyOps.Api.Features.Common;
+using Scalar.AspNetCore;
 using SafetyOps.Api.Features.MedicalSurveillance;
 using SafetyOps.Api.Features.Personnel;
 using SafetyOps.Api.Features.Training;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers()
-    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new WireDateOnlyConverter()));
+builder.Services.AddControllers(options =>
+    {
+        // Validation errors are keyed by JSON property name (camelCase), matching the request body.
+        options.ModelMetadataDetailsProviders.Add(new SystemTextJsonValidationMetadataProvider());
+        // Required-ness is declared explicitly with [Required]; a malformed body shouldn't also report "request is required".
+        options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+    })
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new IsoDateOnlyConverter()));
+builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -30,17 +39,24 @@ await using (var scope = app.Services.CreateAsyncScope())
     }
 }
 
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+
 app.UseDefaultFiles();
 app.MapStaticAssets();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+// Unknown API routes get a 404 problem response; everything else falls through to the SPA.
+app.MapFallback("/api/{**path}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound));
 app.MapFallbackToFile("/index.html");
 
 app.Run();

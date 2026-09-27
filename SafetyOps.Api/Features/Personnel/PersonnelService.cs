@@ -8,7 +8,7 @@ namespace SafetyOps.Api.Features.Personnel;
 
 public interface IPersonnelService
 {
-    Task<IReadOnlyList<PersonDto>> SearchAsync(string? search, CancellationToken ct = default);
+    Task<PagedResult<PersonDto>> ListAsync(ListQuery query, CancellationToken ct = default);
     Task<PersonDto?> GetAsync(int id, CancellationToken ct = default);
     Task<Result<PersonDto>> CreateAsync(PersonRequest request, CancellationToken ct = default);
     Task<Result<PersonDto>> UpdateAsync(int id, PersonRequest request, CancellationToken ct = default);
@@ -17,12 +17,12 @@ public interface IPersonnelService
 
 public sealed class PersonnelService(AppDbContext db) : IPersonnelService
 {
-    public async Task<IReadOnlyList<PersonDto>> SearchAsync(string? search, CancellationToken ct = default)
+    public async Task<PagedResult<PersonDto>> ListAsync(ListQuery list, CancellationToken ct = default)
     {
         var query = db.People.AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(search))
+        if (!string.IsNullOrWhiteSpace(list.Search))
         {
-            var pattern = SqlLike.Contains(search);
+            var pattern = SqlLike.Contains(list.Search);
             query = query.Where(p =>
                 EF.Functions.Like(p.FirstName, pattern, SqlLike.Escape) ||
                 EF.Functions.Like(p.LastName, pattern, SqlLike.Escape) ||
@@ -30,9 +30,9 @@ public sealed class PersonnelService(AppDbContext db) : IPersonnelService
                 EF.Functions.Like(p.Department, pattern, SqlLike.Escape));
         }
         return await query
-            .OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
+            .OrderBy(p => p.LastName).ThenBy(p => p.FirstName).ThenBy(p => p.Id)
             .Select(ToDto)
-            .ToListAsync(ct);
+            .ToPagedResultAsync(list, ct);
     }
 
     public Task<PersonDto?> GetAsync(int id, CancellationToken ct = default) =>
@@ -63,7 +63,7 @@ public sealed class PersonnelService(AppDbContext db) : IPersonnelService
         if (person is null)
             return Errors.NotFound;
         if (await db.MedicalAppointments.AnyAsync(a => a.PersonId == id, ct))
-            return Error.Conflict("User has medical surveillance appointments and cannot be deleted");
+            return Error.Conflict("This person has medical surveillance appointments and cannot be deleted.");
         db.People.Remove(person);
         await db.SaveChangesAsync(ct);
         return Result.Success;
@@ -88,6 +88,6 @@ public sealed class PersonnelService(AppDbContext db) : IPersonnelService
 
     private static class Errors
     {
-        public static readonly Error NotFound = Error.NotFound("User not found");
+        public static readonly Error NotFound = Error.NotFound("Person not found.");
     }
 }

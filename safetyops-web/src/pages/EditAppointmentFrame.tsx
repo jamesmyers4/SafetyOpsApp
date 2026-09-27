@@ -104,8 +104,8 @@ export default function EditAppointmentFrame() {
         if (errs.length > 0) return;
         try {
             await api.updateAppointment(appointmentId, {
-                date, personName, personId,
-                stressors: stressors.map(s => ({ stressorId: s.stressorId, stressorName: s.stressorName, examType: s.examType })),
+                date, personId,
+                stressors: stressors.map(s => ({ stressorId: s.stressorId, examType: s.examType })),
             });
             setSuccessMsg('Record updated successfully');
             window.parent.postMessage({ type: 'appointmentUpdated', message: 'Record updated successfully' }, '*');

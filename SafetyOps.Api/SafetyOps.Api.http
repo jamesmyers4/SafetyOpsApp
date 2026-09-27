@@ -9,20 +9,47 @@ Content-Type: application/json
 ### Check the session
 GET {{host}}/auth/check
 
-### Personnel: list and search
-GET {{host}}/api/personnel/users?search=smith
+### Personnel: list (paged) and search
+GET {{host}}/api/personnel?search=smith&page=1&pageSize=25
+
+### Personnel: create (201 + Location)
+POST {{host}}/api/personnel
+Content-Type: application/json
+
+{ "firstName": "Pat", "lastName": "Example", "department": "Safety", "employeeNumber": "1000099" }
+
+### Personnel: validation error (400 ValidationProblemDetails)
+POST {{host}}/api/personnel
+Content-Type: application/json
+
+{ "firstName": "", "lastName": "" }
 
 ### Personnel: get one
-GET {{host}}/api/personnel/users/1
+GET {{host}}/api/personnel/1
+
+### Personnel: not found (404 ProblemDetails)
+GET {{host}}/api/personnel/99999
 
 ### Training: list classes
-GET {{host}}/api/training/classes
+GET {{host}}/api/training/classes?page=1&pageSize=10
 
-### Training: list courses
+### Training: create a class
+POST {{host}}/api/training/classes
+Content-Type: application/json
+
+{ "courseId": "PPE-001", "classDate": "2026-09-01", "location": "Building 100 Room 101" }
+
+### Training: course catalog
 GET {{host}}/api/training/courses
 
 ### Medical surveillance: list appointments
 GET {{host}}/api/medical-surveillance/appointments
+
+### Medical surveillance: create an appointment
+POST {{host}}/api/medical-surveillance/appointments
+Content-Type: application/json
+
+{ "date": "2026-09-01", "personId": 4, "stressors": [ { "stressorId": "STR-002", "examType": "Periodic" } ] }
 
 ### Medical surveillance: work tasks
 GET {{host}}/api/medical-surveillance/work-tasks
