@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Identity;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
