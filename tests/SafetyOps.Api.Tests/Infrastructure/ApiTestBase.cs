@@ -16,12 +16,18 @@ public abstract class ApiTestBase
     protected SafetyOpsApiFactory Factory { get; private set; } = null!;
     protected HttpClient Client { get; private set; } = null!;
 
+    /// <summary>Every test starts with a signed-in <see cref="Client"/>. Use <see cref="CreateAnonymousClient"/> for the signed-out case.</summary>
     [SetUp]
-    public void CreateApp()
+    public async Task CreateApp()
     {
         Factory = new SafetyOpsApiFactory();
         Client = Factory.CreateClient();
+        var login = await Client.PostAsJsonAsync("/api/auth/login",
+            new { username = SafetyOpsApiFactory.UserName, password = SafetyOpsApiFactory.Password }, Json);
+        Assert.That(login.StatusCode, Is.EqualTo(HttpStatusCode.OK), "test user sign-in failed");
     }
+
+    protected HttpClient CreateAnonymousClient() => Factory.CreateClient();
 
     [TearDown]
     public void DisposeApp()

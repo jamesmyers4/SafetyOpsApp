@@ -21,9 +21,17 @@ public sealed class SafetyOpsApiFactory : WebApplicationFactory<Program>
     /// <summary>"Today" for every test: 2026-06-15 (UTC).</summary>
     public static readonly DateTimeOffset Now = new(2026, 6, 15, 12, 0, 0, TimeSpan.Zero);
 
+    public const string UserName = "tester";
+    public const string Password = "Correct-Horse-1";
+
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
 
-    public SafetyOpsApiFactory() => _connection.Open();
+    public SafetyOpsApiFactory()
+    {
+        _connection.Open();
+        // The auth cookie is Secure-only, so the test client has to speak HTTPS for it to be sent back.
+        ClientOptions.BaseAddress = new Uri("https://localhost");
+    }
 
     public FakeTimeProvider Clock { get; } = new(Now);
 
@@ -32,6 +40,9 @@ public sealed class SafetyOpsApiFactory : WebApplicationFactory<Program>
         // Not Development, so the demo data seeder stays off and each test starts with reference data only.
         builder.UseEnvironment("Testing");
         builder.ConfigureLogging(logging => logging.ClearProviders());
+        builder.UseSetting("Auth:DemoUsers:0:UserName", UserName);
+        builder.UseSetting("Auth:DemoUsers:0:Password", Password);
+        builder.UseSetting("Auth:DemoUsers:0:DisplayName", "Test User");
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();

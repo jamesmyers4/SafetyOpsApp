@@ -56,7 +56,7 @@ export default defineConfig(({ command }) => ({
     },
     server: {
         proxy: {
-            '^/(api|auth)/': {
+            '^/api/': {
                 target,
                 secure: false
             }

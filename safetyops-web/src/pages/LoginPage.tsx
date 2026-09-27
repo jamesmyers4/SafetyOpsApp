@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
+import { safeReturnUrl } from '../auth/currentUser';
 
 export default function LoginPage() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -11,7 +13,7 @@ export default function LoginPage() {
     async function handleLogin() {
         try {
             await api.login(username, password);
-            navigate('/home');
+            navigate(safeReturnUrl(searchParams.get('returnUrl')), { replace: true });
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Login failed');
         }

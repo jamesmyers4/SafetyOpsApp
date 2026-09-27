@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
+import { useCurrentUser } from '../auth/currentUser';
 
 interface NavBarProps {
     extra?: ReactNode;
@@ -8,6 +10,15 @@ interface NavBarProps {
 export default function NavBar({ extra }: NavBarProps) {
     const navigate = useNavigate();
     const [modulesOpen, setModulesOpen] = useState(false);
+    const user = useCurrentUser();
+
+    async function signOut() {
+        try {
+            await api.logout();
+        } finally {
+            navigate('/login');
+        }
+    }
     const navLink: React.CSSProperties = { color: '#aac4ff', textDecoration: 'none', fontSize: '15px', fontWeight: 'normal', cursor: 'pointer' };
 
     return (
@@ -49,6 +60,12 @@ export default function NavBar({ extra }: NavBarProps) {
                     )}
                 </div>
                 {extra}
+                {user && (
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '16px', alignItems: 'center', fontSize: '14px', fontWeight: 'normal' }}>
+                        <span aria-label="Signed in user">{user.displayName}</span>
+                        <a href="#" onClick={e => { e.preventDefault(); signOut(); }} style={navLink}>Sign out</a>
+                    </div>
+                )}
             </div>
             {modulesOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 200 }} onClick={() => setModulesOpen(false)} />

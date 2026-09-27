@@ -1,7 +1,11 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SafetyOps.Api.Data;
+using SafetyOps.Api.Domain;
+using SafetyOps.Api.Features.Auth;
 using SafetyOps.Api.Features.Common;
 using Scalar.AspNetCore;
 using SafetyOps.Api.Features.MedicalSurveillance;
@@ -23,6 +27,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(ResolveSqliteConnectionString(builder.Configuration, builder.Environment)));
+builder.Services.AddSafetyOpsAuth(builder.Configuration);
 builder.Services.AddScoped<IPersonnelService, PersonnelService>();
 builder.Services.AddScoped<ITrainingService, TrainingService>();
 builder.Services.AddScoped<IMedicalSurveillanceService, MedicalSurveillanceService>();
@@ -33,6 +38,9 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
+    await UserSeeder.SeedAsync(db,
+        scope.ServiceProvider.GetRequiredService<IOptions<AuthOptions>>().Value,
+        scope.ServiceProvider.GetRequiredService<IPasswordHasher<AppUser>>());
     if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:SeedDemoData"))
     {
         await DemoDataSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<TimeProvider>());
@@ -43,21 +51,24 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 
 app.UseDefaultFiles();
-app.MapStaticAssets();
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
+
+// Every endpoint requires a signed-in user (fallback policy) except these and [AllowAnonymous] actions.
+app.MapStaticAssets().AllowAnonymous();
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference().AllowAnonymous();
+}
+
 app.MapControllers();
 
 // Unknown API routes get a 404 problem response; everything else falls through to the SPA.
-app.MapFallback("/api/{**path}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound));
-app.MapFallbackToFile("/index.html");
+app.MapFallback("/api/{**path}", () => Results.Problem(statusCode: StatusCodes.Status404NotFound)).AllowAnonymous();
+app.MapFallbackToFile("/index.html").AllowAnonymous();
 
 app.Run();
 
