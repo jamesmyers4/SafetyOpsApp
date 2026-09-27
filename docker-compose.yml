@@ -1,0 +1,30 @@
+# Runs the API and the built SPA together on http://localhost:8080 with demo data.
+# The accounts below are the same throwaway demo logins as in appsettings.Development.json.
+services:
+  safetyops:
+    build: .
+    image: safetyops:local
+    ports:
+      - "8080:8080"
+    environment:
+      Database__SeedDemoData: "true"
+      Auth__DemoUsers__0__UserName: admin
+      Auth__DemoUsers__0__Password: admin
+      Auth__DemoUsers__0__DisplayName: Demo Admin
+      Auth__DemoUsers__0__Role: Admin
+      Auth__DemoUsers__0__OrgUnit: ORG
+      Auth__DemoUsers__1__UserName: manager
+      Auth__DemoUsers__1__Password: manager
+      Auth__DemoUsers__1__DisplayName: Demo Manager
+      Auth__DemoUsers__1__Role: Manager
+      Auth__DemoUsers__1__OrgUnit: MFG
+      Auth__DemoUsers__2__UserName: viewer
+      Auth__DemoUsers__2__Password: viewer
+      Auth__DemoUsers__2__DisplayName: Demo Viewer
+      Auth__DemoUsers__2__Role: Viewer
+      Auth__DemoUsers__2__OrgUnit: MFG-N
+    volumes:
+      - safetyops-data:/data
+
+volumes:
+  safetyops-data:

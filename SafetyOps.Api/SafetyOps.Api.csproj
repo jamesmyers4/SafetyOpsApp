@@ -21,7 +21,8 @@
     <PackageReference Include="Scalar.AspNetCore" Version="2.17.10" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!-- The container build compiles the SPA in its own Node stage, so it skips this reference with -p:SkipSpaBuild=true. -->
+  <ItemGroup Condition="'$(SkipSpaBuild)' != 'true'">
     <ProjectReference Include="..\safetyops-web\safetyops-web.esproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>

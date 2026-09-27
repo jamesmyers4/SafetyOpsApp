@@ -87,6 +87,14 @@ The demo accounts come from `Auth:DemoUsers` in `appsettings.Development.json` a
 
 In Visual Studio, open `SafetyOps.slnx` and run `SafetyOps.Api`; the SPA proxy starts the Vite dev server for you.
 
+### Run it with Docker
+
+```bash
+docker compose up --build
+```
+
+Open <http://localhost:8080> and sign in with the demo accounts above. The image builds the SPA in a Node stage, publishes the API with the SPA in `wwwroot`, and runs as a non-root user on port 8080 with demo data seeded. The SQLite database lives on the `safetyops-data` volume, so data survives restarts; `docker compose down -v` resets it. `GET /healthz` reports liveness.
+
 ## Access control
 
 Records (people, training classes, incidents) belong to a unit in an organization tree: the organization, two divisions, and two sites under each. Appointments belong to the unit of the person evaluated. A role (Viewer, Manager, Admin) is granted on a unit and applies to that unit and everything below it. The API enforces this on every endpoint: records outside your units return `404`, read-only records return `403` on change, and Admins manage roles on the **Access Levels** page (`/api/access/*`). Permissions are looked up on each request, so a grant or revoke applies immediately.

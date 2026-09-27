@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/App_Data/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/TestResults/
+**/*.user
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+tests/
+UPDATES.md
