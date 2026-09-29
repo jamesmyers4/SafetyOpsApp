@@ -1,0 +1,31 @@
+@host = https://localhost:7121
+
+### Log in with the demo account (stores the auth cookie)
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{ "username": "admin", "password": "admin" }
+
+### Check the session
+GET {{host}}/auth/check
+
+### Personnel: list and search
+GET {{host}}/api/personnel/users?search=smith
+
+### Personnel: get one
+GET {{host}}/api/personnel/users/1
+
+### Training: list classes
+GET {{host}}/api/training/classes
+
+### Training: list courses
+GET {{host}}/api/training/courses
+
+### Medical surveillance: list appointments
+GET {{host}}/api/medical-surveillance/appointments
+
+### Medical surveillance: work tasks
+GET {{host}}/api/medical-surveillance/work-tasks
+
+### Log out
+POST {{host}}/auth/logout

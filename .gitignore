@@ -1,0 +1,30 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+TestResults/
+*.trx
+
+# Node / Vite
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.tsbuildinfo
+
+# Local databases
+*.db
+*.db-shm
+*.db-wal
+
+# Editors / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

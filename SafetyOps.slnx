@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="safetyops-web/safetyops-web.esproj" />
+  <Project Path="SafetyOps.Api/SafetyOps.Api.csproj" />
+</Solution>
